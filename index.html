@@ -27,7 +27,9 @@
             display: flex;
             overflow-x: auto;
             overflow-y: hidden;
-            scroll-snap-type: x mandatory;
+            scroll-snap-type: none;
+            overflow-x: hidden;
+            touch-action: pan-y;
             scrollbar-width: none;
 
             /* Deslizamiento más controlado */
@@ -44,7 +46,6 @@
             width: 100vw;
             height: 100vh;
             flex-shrink: 0;
-            scroll-snap-align: start;
             display: flex;
             flex-direction: column;
             padding: 30px 45px;
@@ -608,14 +609,28 @@ cargarTareas();
 cargarEventos();
 
 
-/* Actualizar cada 5 minutos */
+/* Actualizar cada 30 segundos */
 
 setInterval(() => {
 
     cargarTareas();
     cargarEventos();
 
-}, 5 * 60 * 1000);
+}, 30 * 1000);
+
+
+/* Actualizar al volver a la página */
+
+document.addEventListener("visibilitychange", () => {
+
+    if (!document.hidden) {
+
+        cargarTareas();
+        cargarEventos();
+
+    }
+
+});
 
 
 /* =========================
@@ -626,15 +641,50 @@ const app = document.getElementById("app");
 const puntos = document.querySelectorAll(".punto");
 
 let paginaActual = 0;
+
 let inicioX = 0;
 let inicioY = 0;
-let moviendo = false;
 
-const MINIMO_DESLIZAMIENTO = 100;
+const MINIMO_DESLIZAMIENTO = 120;
 
 
-/* Evitamos que el scroll libre
-   decida la página */
+/* =========================
+   CAMBIAR DE PÁGINA
+========================= */
+
+function irAPagina() {
+
+    const desplazamiento =
+        paginaActual * window.innerWidth;
+
+    app.style.transform =
+        `translateX(-${desplazamiento}px)`;
+
+    actualizarIndicadores();
+}
+
+
+/* =========================
+   INDICADORES
+========================= */
+
+function actualizarIndicadores() {
+
+    puntos.forEach((punto, indice) => {
+
+        punto.classList.toggle(
+            "activo",
+            indice === paginaActual
+        );
+
+    });
+
+}
+
+
+/* =========================
+   TOUCH
+========================= */
 
 app.addEventListener("touchstart", (evento) => {
 
@@ -643,39 +693,36 @@ app.addEventListener("touchstart", (evento) => {
     inicioX = toque.clientX;
     inicioY = toque.clientY;
 
-    moviendo = true;
-
 }, { passive: true });
 
 
 app.addEventListener("touchend", (evento) => {
 
-    if (!moviendo) return;
-
-    moviendo = false;
-
     const toque = evento.changedTouches[0];
 
-    const finalX = toque.clientX;
-    const finalY = toque.clientY;
+    const diferenciaX =
+        toque.clientX - inicioX;
 
-    const diferenciaX = finalX - inicioX;
-    const diferenciaY = finalY - inicioY;
+    const diferenciaY =
+        toque.clientY - inicioY;
 
 
-    /* Si el movimiento vertical es mayor,
-       ignoramos el gesto */
+    /* Ignorar movimientos verticales */
 
-    if (Math.abs(diferenciaY) > Math.abs(diferenciaX)) {
+    if (
+        Math.abs(diferenciaY) >
+        Math.abs(diferenciaX)
+    ) {
         return;
     }
 
 
-    /* Si no se ha deslizado suficiente,
-       no cambiamos de pantalla */
+    /* Deslizamiento demasiado pequeño */
 
-    if (Math.abs(diferenciaX) < MINIMO_DESLIZAMIENTO) {
-        volverAPagina();
+    if (
+        Math.abs(diferenciaX) <
+        MINIMO_DESLIZAMIENTO
+    ) {
         return;
     }
 
@@ -707,58 +754,20 @@ app.addEventListener("touchend", (evento) => {
 }, { passive: true });
 
 
-function irAPagina() {
-
-    app.scrollTo({
-        left: paginaActual * window.innerWidth,
-        behavior: "smooth"
-    });
-
-    actualizarIndicadores();
-
-}
-
-
-function volverAPagina() {
-
-    app.scrollTo({
-        left: paginaActual * window.innerWidth,
-        behavior: "smooth"
-    });
-
-}
-
-
-function actualizarIndicadores() {
-
-    puntos.forEach((punto, indice) => {
-
-        punto.classList.toggle(
-            "activo",
-            indice === paginaActual
-        );
-
-    });
-
-}
-
-
 /* =========================
-   BOTONES / RATÓN
+   RATÓN
 ========================= */
 
-/*
-   También funciona con el ratón.
-   Arrastrar más de 100px cambia una página.
-*/
-
-let ratonActivo = false;
 let ratonInicioX = 0;
+let ratonActivo = false;
+
 
 app.addEventListener("mousedown", (evento) => {
 
     ratonActivo = true;
-    ratonInicioX = evento.clientX;
+
+    ratonInicioX =
+        evento.clientX;
 
 });
 
@@ -769,26 +778,44 @@ app.addEventListener("mouseup", (evento) => {
 
     ratonActivo = false;
 
-    const diferencia = evento.clientX - ratonInicioX;
+    const diferencia =
+        evento.clientX - ratonInicioX;
 
-    if (Math.abs(diferencia) < MINIMO_DESLIZAMIENTO) {
-        volverAPagina();
+
+    if (
+        Math.abs(diferencia) <
+        MINIMO_DESLIZAMIENTO
+    ) {
         return;
     }
 
-    if (diferencia < 0 && paginaActual < 2) {
+
+    if (
+        diferencia < 0 &&
+        paginaActual < 2
+    ) {
         paginaActual++;
     }
 
-    if (diferencia > 0 && paginaActual > 0) {
+
+    if (
+        diferencia > 0 &&
+        paginaActual > 0
+    ) {
         paginaActual--;
     }
+
 
     irAPagina();
 
 });
 
 
+/* =========================
+   POSICIÓN INICIAL
+========================= */
+
+irAPagina();
 /* =========================
    INDICADORES
 ========================= */
