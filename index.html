@@ -29,6 +29,10 @@
             overflow-y: hidden;
             scroll-snap-type: x mandatory;
             scrollbar-width: none;
+
+            /* Deslizamiento más controlado */
+            overscroll-behavior-x: contain;
+            scroll-behavior: smooth;
         }
 
         .app::-webkit-scrollbar {
@@ -37,7 +41,9 @@
 
         .pantalla {
             min-width: 100vw;
+            width: 100vw;
             height: 100vh;
+            flex-shrink: 0;
             scroll-snap-align: start;
             display: flex;
             flex-direction: column;
@@ -95,6 +101,7 @@
             flex-direction: column;
             gap: 15px;
             overflow-y: auto;
+            padding-bottom: 20px;
         }
 
         .tarea {
@@ -126,6 +133,11 @@
 
         #calendario {
             background: #312e81;
+        }
+
+        #listaEventos {
+            overflow-y: auto;
+            padding-bottom: 20px;
         }
 
         .evento {
@@ -334,6 +346,39 @@ function formatearFecha(fecha) {
 
 
 /* =========================
+   PRIORIDADES
+========================= */
+
+function nivelPrioridad(prioridad) {
+
+    const texto = prioridad.toLowerCase().trim();
+
+    if (
+        texto.includes("urgente") ||
+        texto.includes("🔴")
+    ) {
+        return 1;
+    }
+
+    if (
+        texto.includes("normal") ||
+        texto.includes("🟡")
+    ) {
+        return 2;
+    }
+
+    if (
+        texto.includes("baja") ||
+        texto.includes("🟢")
+    ) {
+        return 3;
+    }
+
+    return 4;
+}
+
+
+/* =========================
    TAREAS
 ========================= */
 
@@ -361,7 +406,7 @@ async function cargarTareas() {
             return;
         }
 
-        datos.results.forEach(pagina => {
+        const tareas = datos.results.map(pagina => {
 
             const propiedades = pagina.properties;
 
@@ -378,6 +423,40 @@ async function cargarTareas() {
             const prioridad =
                 obtenerTexto(propiedades["Prioridad"]);
 
+            return {
+                nombre,
+                asignatura,
+                fecha,
+                prioridad
+            };
+
+        });
+
+
+        /* Ordenar por prioridad */
+
+        tareas.sort((a, b) => {
+
+            const prioridadA = nivelPrioridad(a.prioridad);
+            const prioridadB = nivelPrioridad(b.prioridad);
+
+            if (prioridadA !== prioridadB) {
+                return prioridadA - prioridadB;
+            }
+
+            /* Si tienen la misma prioridad,
+               ordenar por fecha */
+
+            if (!a.fecha) return 1;
+            if (!b.fecha) return -1;
+
+            return new Date(a.fecha) - new Date(b.fecha);
+
+        });
+
+
+        tareas.forEach(tareaDatos => {
+
             const tarea = document.createElement("div");
 
             tarea.className = "tarea";
@@ -385,17 +464,21 @@ async function cargarTareas() {
             tarea.innerHTML = `
                 <div>
                     <div class="tarea-nombre">
-                        ${nombre}
+                        ${tareaDatos.nombre}
                     </div>
 
                     <div class="tarea-info">
-                        ${asignatura || "Sin asignatura"}
-                        ${fecha ? " · " + formatearFecha(fecha) : ""}
+                        ${tareaDatos.asignatura || "Sin asignatura"}
+                        ${
+                            tareaDatos.fecha
+                                ? " · " + formatearFecha(tareaDatos.fecha)
+                                : ""
+                        }
                     </div>
                 </div>
 
                 <div class="prioridad">
-                    ${prioridad || ""}
+                    ${tareaDatos.prioridad || ""}
                 </div>
             `;
 
@@ -441,15 +524,10 @@ async function cargarEventos() {
             return;
         }
 
-        datos.results.forEach(pagina => {
+
+        const eventos = datos.results.map(pagina => {
 
             const propiedades = pagina.properties;
-
-            /*
-             * Buscamos automáticamente:
-             * - una propiedad de título
-             * - una propiedad de fecha
-             */
 
             let nombre = "";
             let fecha = "";
@@ -465,9 +543,30 @@ async function cargarEventos() {
                 if (!fecha && propiedad.type === "date") {
                     fecha = obtenerFecha(propiedad);
                 }
+
             }
 
-            nombre = nombre || "Evento sin nombre";
+            return {
+                nombre: nombre || "Evento sin nombre",
+                fecha
+            };
+
+        });
+
+
+        /* Ordenar de más cercano a más lejano */
+
+        eventos.sort((a, b) => {
+
+            if (!a.fecha) return 1;
+            if (!b.fecha) return -1;
+
+            return new Date(a.fecha) - new Date(b.fecha);
+
+        });
+
+
+        eventos.forEach(eventoDatos => {
 
             const evento = document.createElement("div");
 
@@ -475,11 +574,15 @@ async function cargarEventos() {
 
             evento.innerHTML = `
                 <div class="evento-nombre">
-                    ${nombre}
+                    ${eventoDatos.nombre}
                 </div>
 
                 <div class="evento-fecha">
-                    ${fecha ? formatearFecha(fecha) : "Sin fecha"}
+                    ${
+                        eventoDatos.fecha
+                            ? formatearFecha(eventoDatos.fecha)
+                            : "Sin fecha"
+                    }
                 </div>
             `;
 
@@ -516,28 +619,181 @@ setInterval(() => {
 
 
 /* =========================
-   CAMBIO DE PANTALLA
+   DESLIZAMIENTO CONTROLADO
 ========================= */
 
 const app = document.getElementById("app");
 const puntos = document.querySelectorAll(".punto");
 
-app.addEventListener("scroll", () => {
+let paginaActual = 0;
+let inicioX = 0;
+let inicioY = 0;
+let moviendo = false;
 
-    const pagina = Math.round(
-        app.scrollLeft / window.innerWidth
-    );
+const MINIMO_DESLIZAMIENTO = 100;
+
+
+/* Evitamos que el scroll libre
+   decida la página */
+
+app.addEventListener("touchstart", (evento) => {
+
+    const toque = evento.touches[0];
+
+    inicioX = toque.clientX;
+    inicioY = toque.clientY;
+
+    moviendo = true;
+
+}, { passive: true });
+
+
+app.addEventListener("touchend", (evento) => {
+
+    if (!moviendo) return;
+
+    moviendo = false;
+
+    const toque = evento.changedTouches[0];
+
+    const finalX = toque.clientX;
+    const finalY = toque.clientY;
+
+    const diferenciaX = finalX - inicioX;
+    const diferenciaY = finalY - inicioY;
+
+
+    /* Si el movimiento vertical es mayor,
+       ignoramos el gesto */
+
+    if (Math.abs(diferenciaY) > Math.abs(diferenciaX)) {
+        return;
+    }
+
+
+    /* Si no se ha deslizado suficiente,
+       no cambiamos de pantalla */
+
+    if (Math.abs(diferenciaX) < MINIMO_DESLIZAMIENTO) {
+        volverAPagina();
+        return;
+    }
+
+
+    /* IZQUIERDA */
+
+    if (diferenciaX < 0) {
+
+        if (paginaActual < 2) {
+            paginaActual++;
+        }
+
+    }
+
+
+    /* DERECHA */
+
+    else {
+
+        if (paginaActual > 0) {
+            paginaActual--;
+        }
+
+    }
+
+
+    irAPagina();
+
+}, { passive: true });
+
+
+function irAPagina() {
+
+    app.scrollTo({
+        left: paginaActual * window.innerWidth,
+        behavior: "smooth"
+    });
+
+    actualizarIndicadores();
+
+}
+
+
+function volverAPagina() {
+
+    app.scrollTo({
+        left: paginaActual * window.innerWidth,
+        behavior: "smooth"
+    });
+
+}
+
+
+function actualizarIndicadores() {
 
     puntos.forEach((punto, indice) => {
 
         punto.classList.toggle(
             "activo",
-            indice === pagina
+            indice === paginaActual
         );
 
     });
 
+}
+
+
+/* =========================
+   BOTONES / RATÓN
+========================= */
+
+/*
+   También funciona con el ratón.
+   Arrastrar más de 100px cambia una página.
+*/
+
+let ratonActivo = false;
+let ratonInicioX = 0;
+
+app.addEventListener("mousedown", (evento) => {
+
+    ratonActivo = true;
+    ratonInicioX = evento.clientX;
+
 });
+
+
+app.addEventListener("mouseup", (evento) => {
+
+    if (!ratonActivo) return;
+
+    ratonActivo = false;
+
+    const diferencia = evento.clientX - ratonInicioX;
+
+    if (Math.abs(diferencia) < MINIMO_DESLIZAMIENTO) {
+        volverAPagina();
+        return;
+    }
+
+    if (diferencia < 0 && paginaActual < 2) {
+        paginaActual++;
+    }
+
+    if (diferencia > 0 && paginaActual > 0) {
+        paginaActual--;
+    }
+
+    irAPagina();
+
+});
+
+
+/* =========================
+   INDICADORES
+========================= */
+
+actualizarIndicadores();
 
 </script>
 
