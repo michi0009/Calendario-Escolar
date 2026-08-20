@@ -35,14 +35,6 @@
             scrollbar-width: none;
             touch-action: pan-x;
         }
-            /* MUY IMPORTANTE:
-               ya no existe scroll horizontal */
-            
-            scrollbar-width: none;
-
-            /* Movimiento controlado */
-            transition: transform 0.35s ease-out;
-        }
 
         .app::-webkit-scrollbar {
             display: none;
@@ -1450,211 +1442,145 @@ document.addEventListener(
    CAMBIO DE PANTALLA
 ========================= */
 
-const app =
-    document.getElementById("app");
-
-
-const puntos =
-    document.querySelectorAll(
-        ".punto"
-    );
-
+const app = document.getElementById("app");
+const puntos = document.querySelectorAll(".punto");
 
 let paginaActual = 0;
 
 let inicioX = 0;
-
 let inicioY = 0;
-
-let gestoActivo = false;
-
-
-/*
-   120px de movimiento mínimo.
-   Un gesto muy fuerte sigue cambiando
-   solamente una página.
-*/
 
 const MINIMO_DESLIZAMIENTO = 120;
 
+
+/* =========================
+   ACTUALIZAR INDICADORES
+========================= */
+
+function actualizarIndicadores() {
+
+    const pagina = Math.round(
+        app.scrollLeft / window.innerWidth
+    );
+
+    paginaActual = Math.max(
+        0,
+        Math.min(2, pagina)
+    );
+
+    puntos.forEach((punto, indice) => {
+
+        punto.classList.toggle(
+            "activo",
+            indice === paginaActual
+        );
+
+    });
+
+}
 
 
 /* =========================
    IR A PÁGINA
 ========================= */
 
-function irAPagina() {
+function irAPagina(numero) {
 
-    const desplazamiento =
-        paginaActual * window.innerWidth;
+    paginaActual = Math.max(
+        0,
+        Math.min(2, numero)
+    );
 
     app.scrollTo({
-        left: desplazamiento,
+        left: paginaActual * window.innerWidth,
         behavior: "smooth"
     });
 
-    actualizarIndicadores();
 }
-
 
 
 /* =========================
-   INDICADORES
+   ACTUALIZAR PUNTOS AL SCROLL
 ========================= */
 
-function actualizarIndicadores() {
+app.addEventListener("scroll", () => {
 
-    puntos.forEach(
-        (punto, indice) => {
+    actualizarIndicadores();
 
-            punto.classList.toggle(
-                "activo",
-                indice === paginaActual
-            );
-
-        }
-    );
-
-}
-
+});
 
 
 /* =========================
    TOUCH START
 ========================= */
 
-app.addEventListener(
-    "touchstart",
-    evento => {
+app.addEventListener("touchstart", evento => {
 
-        const toque =
-            evento.touches[0];
+    const toque = evento.touches[0];
 
+    inicioX = toque.clientX;
+    inicioY = toque.clientY;
 
-        inicioX =
-            toque.clientX;
-
-
-        inicioY =
-            toque.clientY;
-
-
-        gestoActivo = true;
-
-    },
-    {
-        passive: true
-    }
-);
-
+}, { passive: true });
 
 
 /* =========================
    TOUCH END
 ========================= */
 
-app.addEventListener(
-    "touchend",
-    evento => {
+app.addEventListener("touchend", evento => {
 
-        if (!gestoActivo) {
-            return;
-        }
+    const toque = evento.changedTouches[0];
 
+    const diferenciaX =
+        toque.clientX - inicioX;
 
-        gestoActivo = false;
-
-
-        const toque =
-            evento.changedTouches[0];
+    const diferenciaY =
+        toque.clientY - inicioY;
 
 
-        const diferenciaX =
-            toque.clientX -
-            inicioX;
+    /* Ignorar movimiento vertical */
 
-
-        const diferenciaY =
-            toque.clientY -
-            inicioY;
-
-
-
-        /* =========================
-           MOVIMIENTO VERTICAL
-        ========================= */
-
-        if (
-            Math.abs(diferenciaY) >
-            Math.abs(diferenciaX)
-        ) {
-
-            return;
-
-        }
-
-
-
-        /* =========================
-           MOVIMIENTO PEQUEÑO
-        ========================= */
-
-        if (
-            Math.abs(diferenciaX) <
-            MINIMO_DESLIZAMIENTO
-        ) {
-
-            return;
-
-        }
-
-
-
-        /* =========================
-           IZQUIERDA
-        ========================= */
-
-        if (
-            diferenciaX < 0
-        ) {
-
-            if (
-                paginaActual < 2
-            ) {
-
-                paginaActual++;
-
-            }
-
-        }
-
-
-
-        /* =========================
-           DERECHA
-        ========================= */
-
-        else {
-
-            if (
-                paginaActual > 0
-            ) {
-
-                paginaActual--;
-
-            }
-
-        }
-
-
-        irAPagina();
-
-    },
-    {
-        passive: true
+    if (
+        Math.abs(diferenciaY) >
+        Math.abs(diferenciaX)
+    ) {
+        return;
     }
-);
 
+
+    /* Ignorar deslizamientos pequeños */
+
+    if (
+        Math.abs(diferenciaX) <
+        MINIMO_DESLIZAMIENTO
+    ) {
+        return;
+    }
+
+
+    /* Deslizar hacia la izquierda */
+
+    if (diferenciaX < 0) {
+
+        if (paginaActual < 2) {
+            irAPagina(paginaActual + 1);
+        }
+
+    }
+
+
+    /* Deslizar hacia la derecha */
+
+    else {
+
+        if (paginaActual > 0) {
+            irAPagina(paginaActual - 1);
+        }
+
+    }
+
+}, { passive: true });
 
 
 /* =========================
@@ -1662,84 +1588,65 @@ app.addEventListener(
 ========================= */
 
 let ratonActivo = false;
-
 let ratonInicioX = 0;
 
 
+app.addEventListener("mousedown", evento => {
 
-app.addEventListener(
-    "mousedown",
-    evento => {
+    ratonActivo = true;
 
-        ratonActivo = true;
+    ratonInicioX = evento.clientX;
 
-        ratonInicioX =
-            evento.clientX;
+});
+
+
+app.addEventListener("mouseup", evento => {
+
+    if (!ratonActivo) {
+        return;
+    }
+
+    ratonActivo = false;
+
+    const diferencia =
+        evento.clientX - ratonInicioX;
+
+
+    if (
+        Math.abs(diferencia) <
+        MINIMO_DESLIZAMIENTO
+    ) {
+        return;
+    }
+
+
+    if (
+        diferencia < 0 &&
+        paginaActual < 2
+    ) {
+
+        irAPagina(paginaActual + 1);
 
     }
-);
 
 
+    if (
+        diferencia > 0 &&
+        paginaActual > 0
+    ) {
 
-app.addEventListener(
-    "mouseup",
-    evento => {
-
-        if (!ratonActivo) {
-            return;
-        }
-
-
-        ratonActivo = false;
-
-
-        const diferencia =
-            evento.clientX -
-            ratonInicioX;
-
-
-        if (
-            Math.abs(diferencia) <
-            MINIMO_DESLIZAMIENTO
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            diferencia < 0 &&
-            paginaActual < 2
-        ) {
-
-            paginaActual++;
-
-        }
-
-
-        if (
-            diferencia > 0 &&
-            paginaActual > 0
-        ) {
-
-            paginaActual--;
-
-        }
-
-
-        irAPagina();
+        irAPagina(paginaActual - 1);
 
     }
-);
 
+});
 
 
 /* =========================
    POSICIÓN INICIAL
 ========================= */
 
-irAPagina();
+irAPagina(0);
 
 </script>
 
