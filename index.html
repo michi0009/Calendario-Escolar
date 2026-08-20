@@ -25,16 +25,19 @@
            APP
         ========================= */
 
-        .app {
+       .app {
             width: 100vw;
             height: 100vh;
             display: flex;
-
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+            touch-action: pan-x;
+        }
             /* MUY IMPORTANTE:
                ya no existe scroll horizontal */
-            overflow: hidden;
-
-            touch-action: pan-y;
+            
             scrollbar-width: none;
 
             /* Movimiento controlado */
@@ -1483,20 +1486,14 @@ const MINIMO_DESLIZAMIENTO = 120;
 function irAPagina() {
 
     const desplazamiento =
-        paginaActual *
-        window.innerWidth;
+        paginaActual * window.innerWidth;
 
-
-    app.style.transform =
-        `translate3d(
-            -${desplazamiento}px,
-            0,
-            0
-        )`;
-
+    app.scrollTo({
+        left: desplazamiento,
+        behavior: "smooth"
+    });
 
     actualizarIndicadores();
-
 }
 
 
