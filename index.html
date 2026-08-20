@@ -2156,21 +2156,28 @@ window.addEventListener(
 );
 
 
+/* =========================
+   SERVICE WORKER
+========================= */
+
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js")
+            .then(() => {
+                console.log("Service Worker registrado");
+            })
+            .catch(error => {
+                console.error("Error Service Worker:", error);
+            });
+    });
+}
+
 
 /* =========================
    INICIO
 ========================= */
 
-app.scrollTo({
-
-    left: 0,
-
-    behavior: "auto"
-
-});
-
-
-actualizarPuntos();
+actualizarPantalla();
 
 </script>
 
