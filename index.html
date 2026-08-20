@@ -2,19 +2,10 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Calendario Escolar</title>
 
     <style>
-
-        /* =========================
-           RESET
-        ========================= */
 
         * {
             box-sizing: border-box;
@@ -25,7 +16,6 @@
 
         html,
         body {
-
             width: 100%;
             height: 100%;
 
@@ -36,16 +26,7 @@
             background: #111;
 
             color: white;
-
         }
-
-
-        body {
-
-            overscroll-behavior: none;
-
-        }
-
 
 
         /* =========================
@@ -54,53 +35,46 @@
 
         .app {
 
-            width: 100%;
-            height: 100%;
+            width: 100vw;
 
+            /*
+             * svh = altura estable del viewport.
+             * Evita que la barra del navegador
+             * haga que la pantalla quede cortada.
+             */
             height: 100svh;
-            height: 100dvh;
 
             display: flex;
 
+            /*
+             * El navegador NO hará el swipe
+             * horizontal por su cuenta.
+             * Lo controlamos nosotros.
+             */
             overflow-x: auto;
             overflow-y: hidden;
 
             position: relative;
 
-            /*
-             * El navegador se encarga del
-             * desplazamiento horizontal.
-             */
-
-            scroll-snap-type: x mandatory;
-
-            scroll-behavior: smooth;
-
             scrollbar-width: none;
 
             /*
-             * Evita que el gesto horizontal
-             * se propague fuera de la aplicación.
+             * Permitimos el scroll vertical
+             * dentro de las listas.
              */
-
-            overscroll-behavior-x: contain;
+            touch-action: pan-y;
 
             /*
-             * Permitimos desplazamiento
-             * horizontal con el dedo.
+             * Evita que el navegador haga
+             * un scroll horizontal extraño.
              */
-
-            touch-action: pan-x;
-
+            overscroll-behavior-x: none;
         }
 
 
         .app::-webkit-scrollbar {
-
             display: none;
-
         }
-
 
 
         /* =========================
@@ -109,48 +83,26 @@
 
         .pantalla {
 
-            flex: 0 0 100%;
+            min-width: 100vw;
 
-            width: 100%;
-
-            height: 100%;
+            width: 100vw;
 
             height: 100svh;
-            height: 100dvh;
 
-            min-width: 100%;
+            flex-shrink: 0;
 
             display: flex;
 
             flex-direction: column;
 
-            /*
-             * Cada pantalla es un punto
-             * de "encaje".
-             */
+            padding: 30px 45px;
 
+            /*
+             * Cada pantalla ocupa exactamente
+             * una pantalla.
+             */
             scroll-snap-align: start;
-
-            scroll-snap-stop: always;
-
-            /*
-             * Respeta el notch del móvil.
-             */
-
-            padding-top:
-                max(30px, env(safe-area-inset-top));
-
-            padding-right:
-                max(45px, env(safe-area-inset-right));
-
-            padding-bottom:
-                max(30px, env(safe-area-inset-bottom));
-
-            padding-left:
-                max(45px, env(safe-area-inset-left));
-
         }
-
 
 
         /* =========================
@@ -166,9 +118,6 @@
             align-items: center;
 
             margin-bottom: 25px;
-
-            flex-shrink: 0;
-
         }
 
 
@@ -177,7 +126,6 @@
             font-size: 42px;
 
             font-weight: bold;
-
         }
 
 
@@ -186,7 +134,6 @@
             font-size: 32px;
 
             font-weight: bold;
-
         }
 
 
@@ -197,9 +144,7 @@
             opacity: 0.75;
 
             margin-top: 4px;
-
         }
-
 
 
         /* =========================
@@ -209,7 +154,6 @@
         #horario {
 
             background: #111827;
-
         }
 
 
@@ -224,22 +168,14 @@
             justify-content: center;
 
             align-items: center;
-
-            overflow: hidden;
-
         }
 
 
         .horario-imagen img {
 
-            /*
-             * Nunca puede superar el
-             * espacio disponible.
-             */
-
             max-width: 95%;
 
-            max-height: 100%;
+            max-height: 85%;
 
             width: auto;
 
@@ -249,12 +185,14 @@
 
             border-radius: 15px;
 
+            /*
+             * Evita comportamientos raros
+             * al tocar la imagen.
+             */
             user-select: none;
 
             -webkit-user-drag: none;
-
         }
-
 
 
         /* =========================
@@ -266,7 +204,6 @@
             background: #172554;
 
             overflow: hidden;
-
         }
 
 
@@ -285,26 +222,19 @@
             padding-bottom: 30px;
 
             /*
-             * El scroll vertical de tareas
-             * sigue funcionando con el dedo.
+             * Aquí sí permitimos scroll vertical.
              */
-
             touch-action: pan-y;
-
-            overscroll-behavior-y: contain;
-
         }
 
 
-
         /* =========================
-           SECCIONES
+           SECCIONES DE TAREAS
         ========================= */
 
         .seccion-tareas {
 
             margin-bottom: 30px;
-
         }
 
 
@@ -321,14 +251,13 @@
             padding-bottom: 8px;
 
             border-bottom:
-                2px solid rgba(255,255,255,0.15);
-
+                2px solid
+                rgba(255,255,255,0.15);
         }
 
 
-
         /* =========================
-           TARJETA
+           TARJETA NORMAL
         ========================= */
 
         .tarea {
@@ -349,7 +278,6 @@
             align-items: center;
 
             gap: 15px;
-
         }
 
 
@@ -358,7 +286,6 @@
             font-size: 25px;
 
             font-weight: bold;
-
         }
 
 
@@ -369,7 +296,6 @@
             opacity: 0.75;
 
             margin-top: 5px;
-
         }
 
 
@@ -378,9 +304,7 @@
             font-size: 20px;
 
             white-space: nowrap;
-
         }
-
 
 
         /* =========================
@@ -390,20 +314,17 @@
         .tarea-vencida {
 
             background:
-                rgba(127,29,29,0.45);
+                rgba(127, 29, 29, 0.45);
 
             border-left:
                 5px solid #ef4444;
-
         }
 
 
         .tarea-vencida .tarea-nombre {
 
             color: #fecaca;
-
         }
-
 
 
         /* =========================
@@ -419,23 +340,19 @@
 
             border-left:
                 5px solid #6b7280;
-
         }
 
 
         .tarea-hecha .tarea-nombre {
 
             text-decoration: line-through;
-
         }
 
 
         .tarea-hecha .tarea-info {
 
             text-decoration: line-through;
-
         }
-
 
 
         /* =========================
@@ -447,7 +364,6 @@
             background: #312e81;
 
             overflow: hidden;
-
         }
 
 
@@ -464,9 +380,6 @@
             padding-bottom: 30px;
 
             touch-action: pan-y;
-
-            overscroll-behavior-y: contain;
-
         }
 
 
@@ -480,7 +393,6 @@
             padding: 20px;
 
             margin-top: 15px;
-
         }
 
 
@@ -489,7 +401,6 @@
             font-size: 25px;
 
             font-weight: bold;
-
         }
 
 
@@ -500,9 +411,7 @@
             margin-top: 5px;
 
             opacity: 0.75;
-
         }
-
 
 
         /* =========================
@@ -516,7 +425,6 @@
             font-size: 24px;
 
             opacity: 0.65;
-
         }
 
 
@@ -527,9 +435,7 @@
             font-size: 18px;
 
             margin-top: 20px;
-
         }
-
 
 
         /* =========================
@@ -540,12 +446,12 @@
 
             position: fixed;
 
-            bottom:
-                max(15px, env(safe-area-inset-bottom));
+            bottom: 15px;
 
             left: 50%;
 
-            transform: translateX(-50%);
+            transform:
+                translateX(-50%);
 
             display: flex;
 
@@ -554,7 +460,6 @@
             z-index: 100;
 
             pointer-events: none;
-
         }
 
 
@@ -569,90 +474,12 @@
             background: white;
 
             opacity: 0.4;
-
-            transition: opacity 0.2s;
-
         }
 
 
         .punto.activo {
 
             opacity: 1;
-
-        }
-
-
-
-        /* =========================
-           MÓVIL
-        ========================= */
-
-        @media (max-width: 700px) {
-
-            .pantalla {
-
-                padding-left: 20px;
-
-                padding-right: 20px;
-
-            }
-
-
-            .titulo {
-
-                font-size: 30px;
-
-            }
-
-
-            .hora {
-
-                font-size: 25px;
-
-            }
-
-
-            .fecha {
-
-                font-size: 15px;
-
-            }
-
-
-            .tarea-nombre {
-
-                font-size: 20px;
-
-            }
-
-
-            .tarea-info {
-
-                font-size: 16px;
-
-            }
-
-
-            .prioridad {
-
-                font-size: 17px;
-
-            }
-
-
-            .titulo-seccion {
-
-                font-size: 23px;
-
-            }
-
-
-            .evento-nombre {
-
-                font-size: 21px;
-
-            }
-
         }
 
     </style>
@@ -678,20 +505,13 @@
             </div>
 
 
-            <div style="text-align:right;">
+            <div style="text-align: right;">
 
-                <div
-                    class="hora"
-                    id="hora"
-                >
+                <div class="hora" id="hora">
                     00:00
                 </div>
 
-
-                <div
-                    class="fecha"
-                    id="fecha"
-                >
+                <div class="fecha" id="fecha">
                     20 de agosto de 2026
                 </div>
 
@@ -718,10 +538,7 @@
          PANTALLA 2
     ========================= -->
 
-    <section
-        class="pantalla"
-        id="tareas"
-    >
+    <section class="pantalla" id="tareas">
 
         <div class="cabecera">
 
@@ -729,11 +546,7 @@
                 📋 TAREAS
             </div>
 
-
-            <div
-                class="hora"
-                id="hora2"
-            >
+            <div class="hora" id="hora2">
                 00:00
             </div>
 
@@ -770,11 +583,7 @@
                 📅 CALENDARIO
             </div>
 
-
-            <div
-                class="hora"
-                id="hora3"
-            >
+            <div class="hora" id="hora3">
                 00:00
             </div>
 
@@ -836,12 +645,10 @@ function actualizarHora() {
             ahora.getHours()
         ).padStart(2, "0");
 
-
     const minutos =
         String(
             ahora.getMinutes()
         ).padStart(2, "0");
-
 
     const hora =
         horas + ":" + minutos;
@@ -879,11 +686,11 @@ function actualizarHora() {
     ).textContent =
         fecha.charAt(0).toUpperCase() +
         fecha.slice(1);
-
 }
 
 
 actualizarHora();
+
 
 setInterval(
     actualizarHora,
@@ -898,9 +705,7 @@ setInterval(
 
 function obtenerTexto(propiedad) {
 
-    if (!propiedad) {
-        return "";
-    }
+    if (!propiedad) return "";
 
 
     if (
@@ -908,9 +713,7 @@ function obtenerTexto(propiedad) {
     ) {
 
         return propiedad.title
-            .map(
-                x => x.plain_text
-            )
+            .map(x => x.plain_text)
             .join("");
 
     }
@@ -921,9 +724,7 @@ function obtenerTexto(propiedad) {
     ) {
 
         return propiedad.rich_text
-            .map(
-                x => x.plain_text
-            )
+            .map(x => x.plain_text)
             .join("");
 
     }
@@ -957,7 +758,6 @@ function obtenerTexto(propiedad) {
 
 
     return "";
-
 }
 
 
@@ -974,12 +774,10 @@ function obtenerFecha(propiedad) {
     ) {
 
         return "";
-
     }
 
 
     return propiedad.date?.start || "";
-
 }
 
 
@@ -990,21 +788,16 @@ function obtenerFecha(propiedad) {
 
 function formatearFecha(fecha) {
 
-    if (!fecha) {
-        return "";
-    }
+    if (!fecha) return "";
 
 
     const fechaObj =
         new Date(fecha);
 
 
-    if (
-        isNaN(fechaObj)
-    ) {
+    if (isNaN(fechaObj)) {
 
         return fecha;
-
     }
 
 
@@ -1015,7 +808,6 @@ function formatearFecha(fecha) {
             month: "long"
         }
     );
-
 }
 
 
@@ -1026,9 +818,7 @@ function formatearFecha(fecha) {
 
 function obtenerDia(fecha) {
 
-    if (!fecha) {
-        return null;
-    }
+    if (!fecha) return null;
 
 
     const partes =
@@ -1037,12 +827,9 @@ function obtenerDia(fecha) {
             .split("-");
 
 
-    if (
-        partes.length !== 3
-    ) {
+    if (partes.length !== 3) {
 
         return null;
-
     }
 
 
@@ -1051,7 +838,6 @@ function obtenerDia(fecha) {
         Number(partes[1]) - 1,
         Number(partes[2])
     );
-
 }
 
 
@@ -1071,7 +857,6 @@ function obtenerHoy() {
         ahora.getMonth(),
         ahora.getDate()
     );
-
 }
 
 
@@ -1080,9 +865,7 @@ function obtenerHoy() {
    PRIORIDADES
 ========================= */
 
-function nivelPrioridad(
-    prioridad
-) {
+function nivelPrioridad(prioridad) {
 
     const texto =
         prioridad
@@ -1096,7 +879,6 @@ function nivelPrioridad(
     ) {
 
         return 1;
-
     }
 
 
@@ -1106,7 +888,6 @@ function nivelPrioridad(
     ) {
 
         return 2;
-
     }
 
 
@@ -1116,12 +897,10 @@ function nivelPrioridad(
     ) {
 
         return 3;
-
     }
 
 
     return 4;
-
 }
 
 
@@ -1152,7 +931,6 @@ async function cargarTareas() {
                 "Error HTTP " +
                 respuesta.status
             );
-
         }
 
 
@@ -1160,8 +938,7 @@ async function cargarTareas() {
             await respuesta.json();
 
 
-        contenedor.innerHTML =
-            "";
+        contenedor.innerHTML = "";
 
 
         if (
@@ -1173,7 +950,6 @@ async function cargarTareas() {
                 '<div class="mensaje">📚 No hay tareas</div>';
 
             return;
-
         }
 
 
@@ -1194,9 +970,7 @@ async function cargarTareas() {
 
                     const asignatura =
                         obtenerTexto(
-                            propiedades[
-                                "Asignatura "
-                            ]
+                            propiedades["Asignatura "]
                         );
 
 
@@ -1244,11 +1018,6 @@ async function cargarTareas() {
             );
 
 
-
-        /* =========================
-           CLASIFICAR
-        ========================= */
-
         const pendientes = [];
 
         const vencidas = [];
@@ -1269,23 +1038,17 @@ async function cargarTareas() {
                         .trim() === "hecha"
                 ) {
 
-                    hechas.push(
-                        tarea
-                    );
+                    hechas.push(tarea);
 
                     return;
-
                 }
 
 
                 if (!tarea.fecha) {
 
-                    pendientes.push(
-                        tarea
-                    );
+                    pendientes.push(tarea);
 
                     return;
-
                 }
 
 
@@ -1297,12 +1060,9 @@ async function cargarTareas() {
 
                 if (!diaEntrega) {
 
-                    pendientes.push(
-                        tarea
-                    );
+                    pendientes.push(tarea);
 
                     return;
-
                 }
 
 
@@ -1326,9 +1086,7 @@ async function cargarTareas() {
                     diferencia <= 3
                 ) {
 
-                    vencidas.push(
-                        tarea
-                    );
+                    vencidas.push(tarea);
 
                 }
 
@@ -1337,27 +1095,20 @@ async function cargarTareas() {
                     diferencia > 3
                 ) {
 
-                    return;
+                    /* No mostrar */
 
                 }
 
 
                 else {
 
-                    pendientes.push(
-                        tarea
-                    );
+                    pendientes.push(tarea);
 
                 }
 
             }
         );
 
-
-
-        /* =========================
-           ORDENAR
-        ========================= */
 
         pendientes.sort(
             (a, b) => {
@@ -1382,25 +1133,18 @@ async function cargarTareas() {
                     return
                         prioridadA -
                         prioridadB;
-
                 }
 
 
-                if (!a.fecha) {
-                    return 1;
-                }
+                if (!a.fecha) return 1;
 
-
-                if (!b.fecha) {
-                    return -1;
-                }
+                if (!b.fecha) return -1;
 
 
                 return (
                     new Date(a.fecha) -
                     new Date(b.fecha)
                 );
-
             }
         );
 
@@ -1409,19 +1153,13 @@ async function cargarTareas() {
             (a, b) => {
 
                 const fechaA =
-                    obtenerDia(
-                        a.fecha
-                    );
-
+                    obtenerDia(a.fecha);
 
                 const fechaB =
-                    obtenerDia(
-                        b.fecha
-                    );
+                    obtenerDia(b.fecha);
 
 
                 return fechaA - fechaB;
-
             }
         );
 
@@ -1448,15 +1186,9 @@ async function cargarTareas() {
 
 
                 return fechaB - fechaA;
-
             }
         );
 
-
-
-        /* =========================
-           CREAR SECCIONES
-        ========================= */
 
         crearSeccion(
             contenedor,
@@ -1491,9 +1223,7 @@ async function cargarTareas() {
 
         contenedor.innerHTML =
             '<div class="error">⚠️ No se pudieron cargar las tareas</div>';
-
     }
-
 }
 
 
@@ -1538,9 +1268,7 @@ function crearSeccion(
     );
 
 
-    if (
-        tareas.length === 0
-    ) {
+    if (tareas.length === 0) {
 
         const mensaje =
             document.createElement(
@@ -1558,7 +1286,6 @@ function crearSeccion(
 
             mensaje.textContent =
                 "🎉 No hay tareas vencidas";
-
         }
 
         else if (
@@ -1567,21 +1294,18 @@ function crearSeccion(
 
             mensaje.textContent =
                 "📚 No hay tareas pendientes";
-
         }
 
         else {
 
             mensaje.textContent =
                 "✅ No hay tareas hechas";
-
         }
 
 
         seccion.appendChild(
             mensaje
         );
-
     }
 
 
@@ -1605,7 +1329,6 @@ function crearSeccion(
                 tarea.classList.add(
                     "tarea-vencida"
                 );
-
             }
 
 
@@ -1616,7 +1339,6 @@ function crearSeccion(
                 tarea.classList.add(
                     "tarea-hecha"
                 );
-
             }
 
 
@@ -1679,7 +1401,6 @@ function crearSeccion(
     contenedor.appendChild(
         seccion
     );
-
 }
 
 
@@ -1710,7 +1431,6 @@ async function cargarEventos() {
                 "Error HTTP " +
                 respuesta.status
             );
-
         }
 
 
@@ -1718,8 +1438,7 @@ async function cargarEventos() {
             await respuesta.json();
 
 
-        contenedor.innerHTML =
-            "";
+        contenedor.innerHTML = "";
 
 
         if (
@@ -1731,7 +1450,6 @@ async function cargarEventos() {
                 '<div class="mensaje">📅 No hay eventos</div>';
 
             return;
-
         }
 
 
@@ -1753,9 +1471,7 @@ async function cargarEventos() {
                     ) {
 
                         const propiedad =
-                            propiedades[
-                                clave
-                            ];
+                            propiedades[clave];
 
 
                         if (
@@ -1768,7 +1484,6 @@ async function cargarEventos() {
                                 obtenerTexto(
                                     propiedad
                                 );
-
                         }
 
 
@@ -1782,9 +1497,7 @@ async function cargarEventos() {
                                 obtenerFecha(
                                     propiedad
                                 );
-
                         }
-
                     }
 
 
@@ -1797,30 +1510,22 @@ async function cargarEventos() {
                         fecha
 
                     };
-
                 }
             );
-
 
 
         eventos.sort(
             (a, b) => {
 
-                if (!a.fecha) {
-                    return 1;
-                }
+                if (!a.fecha) return 1;
 
-
-                if (!b.fecha) {
-                    return -1;
-                }
+                if (!b.fecha) return -1;
 
 
                 return (
                     new Date(a.fecha) -
                     new Date(b.fecha)
                 );
-
             }
         );
 
@@ -1865,10 +1570,8 @@ async function cargarEventos() {
                 contenedor.appendChild(
                     evento
                 );
-
             }
         );
-
 
     }
 
@@ -1879,9 +1582,7 @@ async function cargarEventos() {
 
         contenedor.innerHTML =
             '<div class="error">⚠️ No se pudieron cargar los eventos</div>';
-
     }
-
 }
 
 
@@ -1928,148 +1629,191 @@ document.addEventListener(
             cargarEventos();
 
         }
-
     }
 );
 
 
 
-/* =========================
+/* =====================================================
    NAVEGACIÓN
-   NATIVA CON SCROLL-SNAP
-========================= */
+   ===================================================== */
 
 const app =
-    document.getElementById(
-        "app"
-    );
+    document.getElementById("app");
 
 
 const puntos =
-    document.querySelectorAll(
-        ".punto"
-    );
+    document.querySelectorAll(".punto");
 
 
-const pantallas =
-    document.querySelectorAll(
-        ".pantalla"
-    );
+let paginaActual = 0;
+
+let inicioX = 0;
+
+let inicioY = 0;
+
+let gestoHorizontal = false;
+
+let moviendo = false;
+
+
+const MINIMO_DESLIZAMIENTO = 120;
+
+const DURACION_ANIMACION = 400;
 
 
 
-/*
- * Determina qué pantalla está
- * actualmente visible.
- */
+/* =========================
+   PUNTOS
+========================= */
 
-function actualizarIndicador() {
-
-    const ancho =
-        app.clientWidth;
-
-
-    if (!ancho) {
-        return;
-    }
-
-
-    /*
-     * Redondeamos la posición.
-     * Esto evita problemas con valores
-     * decimales del navegador.
-     */
-
-    let pagina =
-        Math.round(
-            app.scrollLeft /
-            ancho
-        );
-
-
-    /*
-     * Nunca salimos de 0-2.
-     */
-
-    pagina =
-        Math.max(
-            0,
-            Math.min(
-                2,
-                pagina
-            )
-        );
-
+function actualizarPuntos() {
 
     puntos.forEach(
         (punto, indice) => {
 
             punto.classList.toggle(
                 "activo",
-                indice === pagina
+                indice === paginaActual
             );
 
         }
     );
-
 }
 
 
 
-/*
- * Actualizamos los puntos mientras
- * el usuario desliza.
- */
+/* =========================
+   IR A PÁGINA
+========================= */
 
-let ultimoScroll = 0;
+function irAPagina(numero) {
 
-let rafPendiente = false;
+    numero =
+        Math.max(
+            0,
+            Math.min(
+                2,
+                numero
+            )
+        );
 
+
+    paginaActual = numero;
+
+    actualizarPuntos();
+
+
+    moviendo = true;
+
+
+    /*
+     * Movemos el scroll REAL.
+     * No usamos transform.
+     */
+
+    app.scrollTo({
+
+        left:
+            numero *
+            window.innerWidth,
+
+        behavior: "smooth"
+
+    });
+
+
+    setTimeout(
+        () => {
+
+            moviendo = false;
+
+            /*
+             * Corregimos cualquier pequeño
+             * error de posición.
+             */
+
+            app.scrollLeft =
+                paginaActual *
+                window.innerWidth;
+
+        },
+        DURACION_ANIMACION
+    );
+}
+
+
+
+/* =========================
+   CAMBIAR PÁGINA
+========================= */
+
+function cambiarPagina(direccion) {
+
+    if (moviendo) {
+        return;
+    }
+
+
+    const nuevaPagina =
+        paginaActual +
+        direccion;
+
+
+    if (
+        nuevaPagina < 0 ||
+        nuevaPagina > 2
+    ) {
+
+        return;
+    }
+
+
+    irAPagina(
+        nuevaPagina
+    );
+}
+
+
+
+/* =========================
+   TOUCH START
+========================= */
 
 app.addEventListener(
-    "scroll",
-    () => {
+    "touchstart",
+    evento => {
 
-        ultimoScroll =
-            app.scrollLeft;
-
-
-        if (rafPendiente) {
+        if (moviendo) {
             return;
         }
 
 
-        rafPendiente = true;
+        /*
+         * Solo nos interesa el primer dedo.
+         */
+
+        if (
+            evento.touches.length !== 1
+        ) {
+
+            return;
+        }
 
 
-        requestAnimationFrame(
-            () => {
-
-                actualizarIndicador();
-
-                rafPendiente = false;
-
-            }
-        );
-
-    },
-    {
-        passive: true
-    }
-);
+        const toque =
+            evento.touches[0];
 
 
+        inicioX =
+            toque.clientX;
 
-/*
- * Cuando termina el desplazamiento,
- * actualizamos definitivamente.
- */
 
-app.addEventListener(
-    "scrollend",
-    () => {
+        inicioY =
+            toque.clientY;
 
-        actualizarIndicador();
+
+        gestoHorizontal = false;
 
     },
     {
@@ -2080,29 +1824,270 @@ app.addEventListener(
 
 
 /* =========================
-   CLIC EN LOS PUNTOS
+   TOUCH MOVE
 ========================= */
 
-puntos.forEach(
-    (punto, indice) => {
+app.addEventListener(
+    "touchmove",
+    evento => {
 
-        punto.addEventListener(
-            "click",
-            () => {
+        if (moviendo) {
+            return;
+        }
 
-                app.scrollTo({
 
-                    left:
-                        indice *
-                        app.clientWidth,
+        if (
+            evento.touches.length !== 1
+        ) {
 
-                    behavior:
-                        "smooth"
+            return;
+        }
 
-                });
 
-            }
-        );
+        const toque =
+            evento.touches[0];
+
+
+        const diferenciaX =
+            toque.clientX -
+            inicioX;
+
+
+        const diferenciaY =
+            toque.clientY -
+            inicioY;
+
+
+        /*
+         * Cuando sabemos que el gesto es
+         * horizontal, evitamos que el navegador
+         * intente hacer un scroll horizontal
+         * por su cuenta.
+         */
+
+        if (
+            Math.abs(diferenciaX) >
+            Math.abs(diferenciaY)
+        ) {
+
+            gestoHorizontal = true;
+
+            /*
+             * NO usamos preventDefault aquí
+             * porque el listener es passive.
+             *
+             * touch-action: pan-y se encarga
+             * de impedir el movimiento horizontal.
+             */
+        }
+
+    },
+    {
+        passive: true
+    }
+);
+
+
+
+/* =========================
+   TOUCH END
+========================= */
+
+app.addEventListener(
+    "touchend",
+    evento => {
+
+        if (moviendo) {
+            return;
+        }
+
+
+        if (!gestoHorizontal) {
+            return;
+        }
+
+
+        const toque =
+            evento.changedTouches[0];
+
+
+        const diferenciaX =
+            toque.clientX -
+            inicioX;
+
+
+        const diferenciaY =
+            toque.clientY -
+            inicioY;
+
+
+        /*
+         * Si finalmente fue vertical,
+         * no hacemos nada.
+         */
+
+        if (
+            Math.abs(diferenciaY) >
+            Math.abs(diferenciaX)
+        ) {
+
+            return;
+        }
+
+
+        /*
+         * Swipe demasiado pequeño.
+         */
+
+        if (
+            Math.abs(diferenciaX) <
+            MINIMO_DESLIZAMIENTO
+        ) {
+
+            return;
+        }
+
+
+        /*
+         * IZQUIERDA
+         */
+
+        if (
+            diferenciaX < 0
+        ) {
+
+            cambiarPagina(1);
+
+        }
+
+
+        /*
+         * DERECHA
+         */
+
+        else {
+
+            cambiarPagina(-1);
+
+        }
+
+
+        gestoHorizontal = false;
+
+    },
+    {
+        passive: true
+    }
+);
+
+
+
+/* =========================
+   CANCELAR TOUCH
+========================= */
+
+app.addEventListener(
+    "touchcancel",
+    () => {
+
+        gestoHorizontal = false;
+
+    },
+    {
+        passive: true
+    }
+);
+
+
+
+/* =====================================================
+   RATÓN
+   ===================================================== */
+
+let ratonActivo = false;
+
+let ratonInicioX = 0;
+
+
+
+app.addEventListener(
+    "mousedown",
+    evento => {
+
+        if (moviendo) {
+            return;
+        }
+
+
+        ratonActivo = true;
+
+        ratonInicioX =
+            evento.clientX;
+
+    }
+);
+
+
+
+app.addEventListener(
+    "mouseup",
+    evento => {
+
+        if (!ratonActivo) {
+            return;
+        }
+
+
+        ratonActivo = false;
+
+
+        if (moviendo) {
+            return;
+        }
+
+
+        const diferencia =
+            evento.clientX -
+            ratonInicioX;
+
+
+        if (
+            Math.abs(diferencia) <
+            MINIMO_DESLIZAMIENTO
+        ) {
+
+            return;
+        }
+
+
+        if (
+            diferencia < 0
+        ) {
+
+            cambiarPagina(1);
+
+        }
+
+        else {
+
+            cambiarPagina(-1);
+
+        }
+
+    }
+);
+
+
+
+/* =========================
+   RATÓN CANCELADO
+========================= */
+
+app.addEventListener(
+    "mouseleave",
+    () => {
+
+        ratonActivo = false;
 
     }
 );
@@ -2133,8 +2118,7 @@ document
 
 
 /* =========================
-   AJUSTAR AL CAMBIAR
-   TAMAÑO DE VENTANA
+   REDIMENSIONAR
 ========================= */
 
 window.addEventListener(
@@ -2142,30 +2126,26 @@ window.addEventListener(
     () => {
 
         /*
-         * Recolocamos la pantalla actual
-         * sin usar transform.
+         * Esperamos un instante para que
+         * el navegador termine de actualizar
+         * el viewport.
          */
 
-        const pagina =
-            Math.round(
-                app.scrollLeft /
-                app.clientWidth
-            );
+        requestAnimationFrame(
+            () => {
 
+                app.scrollTo({
 
-        app.scrollTo({
+                    left:
+                        paginaActual *
+                        window.innerWidth,
 
-            left:
-                pagina *
-                app.clientWidth,
+                    behavior: "auto"
 
-            behavior:
-                "instant"
+                });
 
-        });
-
-
-        actualizarIndicador();
+            }
+        );
 
     }
 );
@@ -2176,9 +2156,16 @@ window.addEventListener(
    INICIO
 ========================= */
 
-app.scrollLeft = 0;
+app.scrollTo({
 
-actualizarIndicador();
+    left: 0,
+
+    behavior: "auto"
+
+});
+
+
+actualizarPuntos();
 
 </script>
 
