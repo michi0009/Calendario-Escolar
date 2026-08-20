@@ -2,6 +2,7 @@
   "name": "Mi Calendario Escolar",
   "short_name": "Calendario",
   "start_url": "./",
+  "scope": "./",
   "display": "fullscreen",
   "background_color": "#111827",
   "theme_color": "#111827",
