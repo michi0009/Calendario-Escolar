@@ -1,1 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Calendario Escolar</title>
 
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: white;
+        }
+
+        .app {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+        }
+
+        .app::-webkit-scrollbar {
+            display: none;
+        }
+
+        .pantalla {
+            min-width: 100vw;
+            height: 100vh;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            padding: 30px 45px;
+        }
+
+        /* HORARIO */
+
+        #horario {
+            background: #111827;
+        }
+
+        .cabecera {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .titulo {
+            font-size: 42px;
+            font-weight: bold;
+        }
+
+        .hora {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .horario-imagen {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .horario-imagen img {
+            max-width: 95%;
+            max-height: 85%;
+            object-fit: contain;
+            border-radius: 15px;
+        }
+
+        /* TAREAS */
+
+        #tareas {
+            background: #172554;
+        }
+
+        .lista {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        .tarea {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tarea-nombre {
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        .tarea-info {
+            font-size: 18px;
+            opacity: 0.75;
+            margin-top: 5px;
+        }
+
+        .prioridad {
+            font-size: 20px;
+            white-space: nowrap;
+        }
+
+        /* CALENDARIO */
+
+        #calendario {
+            background: #312e81;
+        }
+
+        .evento {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .evento-nombre {
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        .evento-fecha {
+            font-size: 18px;
+            margin-top: 5px;
+            opacity: 0.75;
+        }
+
+        .indicadores {
+            position: fixed;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .punto {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: white;
+            opacity: 0.4;
+        }
+
+        .punto.activo {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="app" id="app">
+
+    <!-- PANTALLA 1 -->
+    <section class="pantalla" id="horario">
+
+        <div class="cabecera">
+            <div class="titulo">🏫 HORARIO</div>
+            <div class="hora" id="hora">00:00</div>
+        </div>
+
+        <div class="horario-imagen">
+            <img src="horario.png" alt="Horario escolar">
+        </div>
+
+    </section>
+
+
+    <!-- PANTALLA 2 -->
+    <section class="pantalla" id="tareas">
+
+        <div class="cabecera">
+            <div class="titulo">📋 PENDIENTES</div>
+            <div class="hora" id="hora2">00:00</div>
+        </div>
+
+        <div class="lista" id="listaTareas">
+
+            <div class="tarea">
+                <div>
+                    <div class="tarea-nombre">
+                        Ejemplo de tarea
+                    </div>
+                    <div class="tarea-info">
+                        Matemáticas · Mañana
+                    </div>
+                </div>
+
+                <div class="prioridad">
+                    🔴 Urgente
+                </div>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- PANTALLA 3 -->
+    <section class="pantalla" id="calendario">
+
+        <div class="cabecera">
+            <div class="titulo">📅 CALENDARIO</div>
+            <div class="hora" id="hora3">00:00</div>
+        </div>
+
+        <div id="listaEventos">
+
+            <div class="evento">
+                <div class="evento-nombre">
+                    Ejemplo de evento
+                </div>
+
+                <div class="evento-fecha">
+                    27 de agosto · Biología
+                </div>
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<div class="indicadores">
+    <div class="punto activo"></div>
+    <div class="punto"></div>
+    <div class="punto"></div>
+</div>
+
+
+<script>
+
+function actualizarHora() {
+
+    const ahora = new Date();
+
+    const horas = String(ahora.getHours()).padStart(2, "0");
+    const minutos = String(ahora.getMinutes()).padStart(2, "0");
+
+    const hora = horas + ":" + minutos;
+
+    document.getElementById("hora").textContent = hora;
+    document.getElementById("hora2").textContent = hora;
+    document.getElementById("hora3").textContent = hora;
+}
+
+actualizarHora();
+
+setInterval(actualizarHora, 1000);
+
+
+const app = document.getElementById("app");
+const puntos = document.querySelectorAll(".punto");
+
+app.addEventListener("scroll", () => {
+
+    const pagina = Math.round(
+        app.scrollLeft / window.innerWidth
+    );
+
+    puntos.forEach((punto, indice) => {
+        punto.classList.toggle(
+            "activo",
+            indice === pagina
+        );
+    });
+
+});
+
+</script>
+
+</body>
+</html>
