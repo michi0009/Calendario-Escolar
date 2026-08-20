@@ -29,11 +29,9 @@
             width: 100vw;
             height: 100vh;
             display: flex;
-            overflow-x: auto;
-            overflow-y: hidden;
-            scroll-behavior: smooth;
-            scrollbar-width: none;
-            touch-action: pan-x;
+            overflow: hidden;
+            position: relative;
+            touch-action: pan-y;
         }
 
         .app::-webkit-scrollbar {
@@ -1439,7 +1437,7 @@ document.addEventListener(
 
 
 /* =========================
-   CAMBIO DE PANTALLA
+   NAVEGACIÓN ENTRE PANTALLAS
 ========================= */
 
 const app = document.getElementById("app");
@@ -1450,23 +1448,19 @@ let paginaActual = 0;
 let inicioX = 0;
 let inicioY = 0;
 
-const MINIMO_DESLIZAMIENTO = 120;
+let moviendo = false;
+
+const MINIMO_DESLIZAMIENTO = 100;
 
 
 /* =========================
-   ACTUALIZAR INDICADORES
+   POSICIÓN DE LA PÁGINA
 ========================= */
 
-function actualizarIndicadores() {
+function actualizarPantalla() {
 
-    const pagina = Math.round(
-        app.scrollLeft / window.innerWidth
-    );
-
-    paginaActual = Math.max(
-        0,
-        Math.min(2, pagina)
-    );
+    app.style.transform =
+        `translateX(-${paginaActual * 100}vw)`;
 
     puntos.forEach((punto, indice) => {
 
@@ -1481,33 +1475,31 @@ function actualizarIndicadores() {
 
 
 /* =========================
-   IR A PÁGINA
+   CAMBIAR PÁGINA
 ========================= */
 
-function irAPagina(numero) {
+function cambiarPagina(direccion) {
 
-    paginaActual = Math.max(
-        0,
-        Math.min(2, numero)
-    );
+    if (moviendo) return;
 
-    app.scrollTo({
-        left: paginaActual * window.innerWidth,
-        behavior: "smooth"
-    });
+    const nuevaPagina =
+        paginaActual + direccion;
+
+    if (nuevaPagina < 0 || nuevaPagina > 2) {
+        return;
+    }
+
+    paginaActual = nuevaPagina;
+
+    moviendo = true;
+
+    actualizarPantalla();
+
+    setTimeout(() => {
+        moviendo = false;
+    }, 400);
 
 }
-
-
-/* =========================
-   ACTUALIZAR PUNTOS AL SCROLL
-========================= */
-
-app.addEventListener("scroll", () => {
-
-    actualizarIndicadores();
-
-});
 
 
 /* =========================
@@ -1515,6 +1507,8 @@ app.addEventListener("scroll", () => {
 ========================= */
 
 app.addEventListener("touchstart", evento => {
+
+    if (moviendo) return;
 
     const toque = evento.touches[0];
 
@@ -1530,6 +1524,8 @@ app.addEventListener("touchstart", evento => {
 
 app.addEventListener("touchend", evento => {
 
+    if (moviendo) return;
+
     const toque = evento.changedTouches[0];
 
     const diferenciaX =
@@ -1539,7 +1535,8 @@ app.addEventListener("touchend", evento => {
         toque.clientY - inicioY;
 
 
-    /* Ignorar movimiento vertical */
+    /* Si es principalmente vertical,
+       no cambiamos de pantalla */
 
     if (
         Math.abs(diferenciaY) >
@@ -1549,7 +1546,7 @@ app.addEventListener("touchend", evento => {
     }
 
 
-    /* Ignorar deslizamientos pequeños */
+    /* Deslizamiento demasiado pequeño */
 
     if (
         Math.abs(diferenciaX) <
@@ -1559,24 +1556,20 @@ app.addEventListener("touchend", evento => {
     }
 
 
-    /* Deslizar hacia la izquierda */
+    /* IZQUIERDA */
 
     if (diferenciaX < 0) {
 
-        if (paginaActual < 2) {
-            irAPagina(paginaActual + 1);
-        }
+        cambiarPagina(1);
 
     }
 
 
-    /* Deslizar hacia la derecha */
+    /* DERECHA */
 
     else {
 
-        if (paginaActual > 0) {
-            irAPagina(paginaActual - 1);
-        }
+        cambiarPagina(-1);
 
     }
 
@@ -1593,6 +1586,8 @@ let ratonInicioX = 0;
 
 app.addEventListener("mousedown", evento => {
 
+    if (moviendo) return;
+
     ratonActivo = true;
 
     ratonInicioX = evento.clientX;
@@ -1602,7 +1597,7 @@ app.addEventListener("mousedown", evento => {
 
 app.addEventListener("mouseup", evento => {
 
-    if (!ratonActivo) {
+    if (!ratonActivo || moviendo) {
         return;
     }
 
@@ -1620,22 +1615,13 @@ app.addEventListener("mouseup", evento => {
     }
 
 
-    if (
-        diferencia < 0 &&
-        paginaActual < 2
-    ) {
+    if (diferencia < 0) {
 
-        irAPagina(paginaActual + 1);
+        cambiarPagina(1);
 
-    }
+    } else {
 
-
-    if (
-        diferencia > 0 &&
-        paginaActual > 0
-    ) {
-
-        irAPagina(paginaActual - 1);
+        cambiarPagina(-1);
 
     }
 
@@ -1643,11 +1629,10 @@ app.addEventListener("mouseup", evento => {
 
 
 /* =========================
-   POSICIÓN INICIAL
+   INICIO
 ========================= */
 
-irAPagina(0);
-
+actualizarPantalla();
 </script>
 
 </body>
