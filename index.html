@@ -44,11 +44,7 @@
             padding: 30px 45px;
         }
 
-        /* HORARIO */
-
-        #horario {
-            background: #111827;
-        }
+        /* CABECERA */
 
         .cabecera {
             display: flex;
@@ -65,6 +61,12 @@
         .hora {
             font-size: 32px;
             font-weight: bold;
+        }
+
+        /* HORARIO */
+
+        #horario {
+            background: #111827;
         }
 
         .horario-imagen {
@@ -144,6 +146,20 @@
             opacity: 0.75;
         }
 
+        .mensaje {
+            margin-top: 30px;
+            font-size: 24px;
+            opacity: 0.65;
+        }
+
+        .error {
+            color: #fca5a5;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+
+        /* INDICADORES */
+
         .indicadores {
             position: fixed;
             bottom: 15px;
@@ -196,22 +212,7 @@
         </div>
 
         <div class="lista" id="listaTareas">
-
-            <div class="tarea">
-                <div>
-                    <div class="tarea-nombre">
-                        Ejemplo de tarea
-                    </div>
-                    <div class="tarea-info">
-                        Matemáticas · Mañana
-                    </div>
-                </div>
-
-                <div class="prioridad">
-                    🔴 Urgente
-                </div>
-            </div>
-
+            <div class="mensaje">Cargando tareas...</div>
         </div>
 
     </section>
@@ -226,17 +227,7 @@
         </div>
 
         <div id="listaEventos">
-
-            <div class="evento">
-                <div class="evento-nombre">
-                    Ejemplo de evento
-                </div>
-
-                <div class="evento-fecha">
-                    27 de agosto · Biología
-                </div>
-            </div>
-
+            <div class="mensaje">Cargando eventos...</div>
         </div>
 
     </section>
@@ -252,6 +243,13 @@
 
 
 <script>
+
+const API = "https://calendario-escolar-api.elkitsunelegendario.workers.dev";
+
+
+/* =========================
+   HORA
+========================= */
 
 function actualizarHora() {
 
@@ -272,6 +270,255 @@ actualizarHora();
 setInterval(actualizarHora, 1000);
 
 
+/* =========================
+   NOTION
+========================= */
+
+function obtenerTexto(propiedad) {
+
+    if (!propiedad) return "";
+
+    if (propiedad.type === "title") {
+        return propiedad.title
+            .map(x => x.plain_text)
+            .join("");
+    }
+
+    if (propiedad.type === "rich_text") {
+        return propiedad.rich_text
+            .map(x => x.plain_text)
+            .join("");
+    }
+
+    if (propiedad.type === "select") {
+        return propiedad.select?.name || "";
+    }
+
+    if (propiedad.type === "status") {
+        return propiedad.status?.name || "";
+    }
+
+    if (propiedad.type === "formula") {
+        return propiedad.formula?.string || "";
+    }
+
+    return "";
+}
+
+
+function obtenerFecha(propiedad) {
+
+    if (!propiedad || propiedad.type !== "date") {
+        return "";
+    }
+
+    return propiedad.date?.start || "";
+}
+
+
+function formatearFecha(fecha) {
+
+    if (!fecha) return "";
+
+    const fechaObj = new Date(fecha);
+
+    if (isNaN(fechaObj)) {
+        return fecha;
+    }
+
+    return fechaObj.toLocaleDateString("es-ES", {
+        day: "numeric",
+        month: "long"
+    });
+}
+
+
+/* =========================
+   TAREAS
+========================= */
+
+async function cargarTareas() {
+
+    const contenedor = document.getElementById("listaTareas");
+
+    try {
+
+        const respuesta = await fetch(API + "/tasks");
+
+        if (!respuesta.ok) {
+            throw new Error("Error HTTP " + respuesta.status);
+        }
+
+        const datos = await respuesta.json();
+
+        contenedor.innerHTML = "";
+
+        if (!datos.results || datos.results.length === 0) {
+
+            contenedor.innerHTML =
+                '<div class="mensaje">📚 No hay tareas pendientes</div>';
+
+            return;
+        }
+
+        datos.results.forEach(pagina => {
+
+            const propiedades = pagina.properties;
+
+            const nombre =
+                obtenerTexto(propiedades["Tarea"]) ||
+                "Tarea sin nombre";
+
+            const asignatura =
+                obtenerTexto(propiedades["Asignatura "]);
+
+            const fecha =
+                obtenerFecha(propiedades["Fecha de entrega"]);
+
+            const prioridad =
+                obtenerTexto(propiedades["Prioridad"]);
+
+            const tarea = document.createElement("div");
+
+            tarea.className = "tarea";
+
+            tarea.innerHTML = `
+                <div>
+                    <div class="tarea-nombre">
+                        ${nombre}
+                    </div>
+
+                    <div class="tarea-info">
+                        ${asignatura || "Sin asignatura"}
+                        ${fecha ? " · " + formatearFecha(fecha) : ""}
+                    </div>
+                </div>
+
+                <div class="prioridad">
+                    ${prioridad || ""}
+                </div>
+            `;
+
+            contenedor.appendChild(tarea);
+
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        contenedor.innerHTML =
+            '<div class="error">⚠️ No se pudieron cargar las tareas</div>';
+    }
+}
+
+
+/* =========================
+   EVENTOS
+========================= */
+
+async function cargarEventos() {
+
+    const contenedor = document.getElementById("listaEventos");
+
+    try {
+
+        const respuesta = await fetch(API + "/events");
+
+        if (!respuesta.ok) {
+            throw new Error("Error HTTP " + respuesta.status);
+        }
+
+        const datos = await respuesta.json();
+
+        contenedor.innerHTML = "";
+
+        if (!datos.results || datos.results.length === 0) {
+
+            contenedor.innerHTML =
+                '<div class="mensaje">📅 No hay eventos</div>';
+
+            return;
+        }
+
+        datos.results.forEach(pagina => {
+
+            const propiedades = pagina.properties;
+
+            /*
+             * Buscamos automáticamente:
+             * - una propiedad de título
+             * - una propiedad de fecha
+             */
+
+            let nombre = "";
+            let fecha = "";
+
+            for (const clave in propiedades) {
+
+                const propiedad = propiedades[clave];
+
+                if (!nombre && propiedad.type === "title") {
+                    nombre = obtenerTexto(propiedad);
+                }
+
+                if (!fecha && propiedad.type === "date") {
+                    fecha = obtenerFecha(propiedad);
+                }
+            }
+
+            nombre = nombre || "Evento sin nombre";
+
+            const evento = document.createElement("div");
+
+            evento.className = "evento";
+
+            evento.innerHTML = `
+                <div class="evento-nombre">
+                    ${nombre}
+                </div>
+
+                <div class="evento-fecha">
+                    ${fecha ? formatearFecha(fecha) : "Sin fecha"}
+                </div>
+            `;
+
+            contenedor.appendChild(evento);
+
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        contenedor.innerHTML =
+            '<div class="error">⚠️ No se pudieron cargar los eventos</div>';
+    }
+}
+
+
+/* =========================
+   CARGAR DATOS
+========================= */
+
+cargarTareas();
+cargarEventos();
+
+
+/* Actualizar cada 5 minutos */
+
+setInterval(() => {
+
+    cargarTareas();
+    cargarEventos();
+
+}, 5 * 60 * 1000);
+
+
+/* =========================
+   CAMBIO DE PANTALLA
+========================= */
+
 const app = document.getElementById("app");
 const puntos = document.querySelectorAll(".punto");
 
@@ -282,10 +529,12 @@ app.addEventListener("scroll", () => {
     );
 
     puntos.forEach((punto, indice) => {
+
         punto.classList.toggle(
             "activo",
             indice === pagina
         );
+
     });
 
 });
