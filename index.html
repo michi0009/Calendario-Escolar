@@ -25,25 +25,25 @@
            APP
         ========================= */
 
-         .app {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-        
-            overflow-x: hidden;
-            overflow-y: hidden;
-        
-            position: relative;
-        
-            touch-action: pan-y;
-        
-            transition: transform 0.35s ease-out;
-            will-change: transform;
-        }
-
-        .app::-webkit-scrollbar {
-            display: none;
-        }
+     .app {
+        width: 100vw;
+        height: 100vh;
+    
+        display: flex;
+    
+        overflow-x: scroll;
+        overflow-y: hidden;
+    
+        position: relative;
+    
+        scroll-behavior: smooth;
+    
+        scrollbar-width: none;
+    }
+    
+    .app::-webkit-scrollbar {
+        display: none;
+    }
 
 
         /* =========================
