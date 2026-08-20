@@ -25,13 +25,20 @@
            APP
         ========================= */
 
-       .app {
+         .app {
             width: 100vw;
             height: 100vh;
             display: flex;
-            overflow: hidden;
+        
+            overflow-x: hidden;
+            overflow-y: hidden;
+        
             position: relative;
+        
             touch-action: pan-y;
+        
+            transition: transform 0.35s ease-out;
+            will-change: transform;
         }
 
         .app::-webkit-scrollbar {
@@ -1450,17 +1457,22 @@ let inicioY = 0;
 
 let moviendo = false;
 
-const MINIMO_DESLIZAMIENTO = 100;
+const MINIMO_DESLIZAMIENTO = 140;
+const DURACION_ANIMACION = 350;
 
 
 /* =========================
-   POSICIÓN DE LA PÁGINA
+   ACTUALIZAR PANTALLA
 ========================= */
 
 function actualizarPantalla() {
 
+    const posicion =
+        paginaActual * window.innerWidth;
+
     app.style.transform =
-        `translateX(-${paginaActual * 100}vw)`;
+        `translate3d(-${posicion}px, 0, 0)`;
+
 
     puntos.forEach((punto, indice) => {
 
@@ -1480,100 +1492,177 @@ function actualizarPantalla() {
 
 function cambiarPagina(direccion) {
 
-    if (moviendo) return;
+    /*
+     * Si todavía está animándose,
+     * ignoramos cualquier otro gesto.
+     */
+
+    if (moviendo) {
+        return;
+    }
+
 
     const nuevaPagina =
         paginaActual + direccion;
 
-    if (nuevaPagina < 0 || nuevaPagina > 2) {
+
+    /*
+     * No permitir salir de 0-2.
+     */
+
+    if (
+        nuevaPagina < 0 ||
+        nuevaPagina > 2
+    ) {
         return;
     }
 
-    paginaActual = nuevaPagina;
+
+    paginaActual =
+        nuevaPagina;
+
 
     moviendo = true;
 
+
     actualizarPantalla();
 
+
+    /*
+     * Bloquear nuevos gestos durante
+     * toda la animación.
+     */
+
     setTimeout(() => {
+
         moviendo = false;
-    }, 400);
+
+    }, DURACION_ANIMACION);
 
 }
+
 
 
 /* =========================
    TOUCH START
 ========================= */
 
-app.addEventListener("touchstart", evento => {
+app.addEventListener(
+    "touchstart",
+    evento => {
 
-    if (moviendo) return;
+        if (moviendo) {
+            return;
+        }
 
-    const toque = evento.touches[0];
 
-    inicioX = toque.clientX;
-    inicioY = toque.clientY;
+        const toque =
+            evento.touches[0];
 
-}, { passive: true });
+
+        inicioX =
+            toque.clientX;
+
+
+        inicioY =
+            toque.clientY;
+
+    },
+    {
+        passive: true
+    }
+);
+
 
 
 /* =========================
    TOUCH END
 ========================= */
 
-app.addEventListener("touchend", evento => {
+app.addEventListener(
+    "touchend",
+    evento => {
 
-    if (moviendo) return;
-
-    const toque = evento.changedTouches[0];
-
-    const diferenciaX =
-        toque.clientX - inicioX;
-
-    const diferenciaY =
-        toque.clientY - inicioY;
+        if (moviendo) {
+            return;
+        }
 
 
-    /* Si es principalmente vertical,
-       no cambiamos de pantalla */
+        const toque =
+            evento.changedTouches[0];
 
-    if (
-        Math.abs(diferenciaY) >
-        Math.abs(diferenciaX)
-    ) {
-        return;
+
+        const diferenciaX =
+            toque.clientX -
+            inicioX;
+
+
+        const diferenciaY =
+            toque.clientY -
+            inicioY;
+
+
+
+        /*
+         * Si el gesto es más vertical
+         * que horizontal, lo ignoramos.
+         */
+
+        if (
+            Math.abs(diferenciaY) >
+            Math.abs(diferenciaX)
+        ) {
+
+            return;
+
+        }
+
+
+
+        /*
+         * El usuario tiene que deslizar
+         * bastante para cambiar.
+         */
+
+        if (
+            Math.abs(diferenciaX) <
+            MINIMO_DESLIZAMIENTO
+        ) {
+
+            return;
+
+        }
+
+
+
+        /*
+         * IZQUIERDA
+         */
+
+        if (diferenciaX < 0) {
+
+            cambiarPagina(1);
+
+        }
+
+
+
+        /*
+         * DERECHA
+         */
+
+        else {
+
+            cambiarPagina(-1);
+
+        }
+
+    },
+    {
+        passive: true
     }
+);
 
-
-    /* Deslizamiento demasiado pequeño */
-
-    if (
-        Math.abs(diferenciaX) <
-        MINIMO_DESLIZAMIENTO
-    ) {
-        return;
-    }
-
-
-    /* IZQUIERDA */
-
-    if (diferenciaX < 0) {
-
-        cambiarPagina(1);
-
-    }
-
-
-    /* DERECHA */
-
-    else {
-
-        cambiarPagina(-1);
-
-    }
-
-}, { passive: true });
 
 
 /* =========================
@@ -1584,48 +1673,108 @@ let ratonActivo = false;
 let ratonInicioX = 0;
 
 
-app.addEventListener("mousedown", evento => {
+app.addEventListener(
+    "mousedown",
+    evento => {
 
-    if (moviendo) return;
-
-    ratonActivo = true;
-
-    ratonInicioX = evento.clientX;
-
-});
+        if (moviendo) {
+            return;
+        }
 
 
-app.addEventListener("mouseup", evento => {
+        ratonActivo = true;
 
-    if (!ratonActivo || moviendo) {
-        return;
-    }
-
-    ratonActivo = false;
-
-    const diferencia =
-        evento.clientX - ratonInicioX;
-
-
-    if (
-        Math.abs(diferencia) <
-        MINIMO_DESLIZAMIENTO
-    ) {
-        return;
-    }
-
-
-    if (diferencia < 0) {
-
-        cambiarPagina(1);
-
-    } else {
-
-        cambiarPagina(-1);
+        ratonInicioX =
+            evento.clientX;
 
     }
+);
 
-});
+
+app.addEventListener(
+    "mouseup",
+    evento => {
+
+        if (
+            !ratonActivo ||
+            moviendo
+        ) {
+
+            return;
+
+        }
+
+
+        ratonActivo = false;
+
+
+        const diferencia =
+            evento.clientX -
+            ratonInicioX;
+
+
+
+        if (
+            Math.abs(diferencia) <
+            MINIMO_DESLIZAMIENTO
+        ) {
+
+            return;
+
+        }
+
+
+
+        if (diferencia < 0) {
+
+            cambiarPagina(1);
+
+        }
+
+        else {
+
+            cambiarPagina(-1);
+
+        }
+
+    }
+);
+
+
+
+/* =========================
+   EVITAR ARRASTRAR IMÁGENES
+========================= */
+
+document
+    .querySelectorAll("img")
+    .forEach(img => {
+
+        img.addEventListener(
+            "dragstart",
+            evento => {
+                evento.preventDefault();
+            }
+        );
+
+    });
+
+
+
+/* =========================
+   AJUSTAR AL CAMBIAR
+   EL TAMAÑO DE LA VENTANA
+========================= */
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        actualizarPantalla();
+
+    }
+);
+
 
 
 /* =========================
