@@ -442,7 +442,87 @@
             margin-top: 20px;
         }
 
-
+        /* =========================
+           PLAN
+        ========================= */
+        
+        #plan {
+            background: #064e3b;
+            overflow: hidden;
+        }
+        
+        #listaPlan {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-bottom: 40px;
+            touch-action: pan-y;
+        }
+        
+        .dia-plan {
+            margin-bottom: 30px;
+        }
+        
+        .titulo-dia {
+            font-size: 30px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(255,255,255,0.15);
+        }
+        
+        .item-plan {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+        }
+        
+        .item-plan.tarea-plan {
+            cursor: pointer;
+        }
+        
+        .item-plan.tarea-plan:active {
+            transform: scale(0.98);
+        }
+        
+        .plan-nombre {
+            font-size: 23px;
+            font-weight: bold;
+        }
+        
+        .plan-info {
+            font-size: 17px;
+            opacity: 0.75;
+            margin-top: 5px;
+        }
+        
+        .plan-aviso {
+            background: rgba(255,255,255,0.07);
+            border-left: 5px solid rgba(255,255,255,0.4);
+        }
+        
+        .plan-examen {
+            border-left: 5px solid #f59e0b;
+        }
+        
+        .plan-entrega {
+            border-left: 5px solid #60a5fa;
+        }
+        
+        .plan-hecha {
+            opacity: 0.45;
+        }
+        
+        .plan-hecha .plan-nombre {
+            text-decoration: line-through;
+        }
+        
+        .casilla {
+            font-size: 24px;
+            margin-right: 10px;
+        }
         /* =========================
            INDICADORES
         ========================= */
@@ -599,6 +679,35 @@
 
             <div class="mensaje">
                 Cargando eventos...
+            </div>
+
+        </div>
+
+    </section>
+
+     <!-- =========================
+         PANTALLA 4 - PLAN
+    ========================= -->
+
+    <section class="pantalla" id="plan">
+
+        <div class="cabecera">
+
+            <div class="titulo">
+                🎯 PLAN
+            </div>
+
+            <div class="hora" id="hora4">
+                00:00
+            </div>
+
+        </div>
+
+
+        <div id="listaPlan">
+
+            <div class="mensaje">
+                Generando plan...
             </div>
 
         </div>
