@@ -454,7 +454,10 @@
 
     const API_BASE_URL = "https://calendario-escolar-api.elkitsunelegendario.workers.dev";
     const PAGE_COUNT = 4;
-    const DATA_REFRESH_INTERVAL = 5 * 60 * 1000;
+    // Notion no envía notificaciones a estos endpoints; se consulta con frecuencia
+    // moderada para reflejar cambios sin recargar manualmente la aplicación.
+    const DATA_REFRESH_INTERVAL = 20 * 1000;
+    const NAVIGATION_REFRESH_DELAY = 8 * 1000;
 
     const appShell = document.getElementById("appShell");
     const appTrack = document.getElementById("appTrack");
@@ -1050,7 +1053,7 @@
           dataState.events.status = dataState.events.items.length ? "ready" : "error";
           dataState.events.error = eventResult.error;
         }
-        lastSuccessfulRefresh = Date.now();
+        if (taskResult.ok || eventResult.ok) lastSuccessfulRefresh = Date.now();
       }).finally(function () {
         refreshPromise = null;
         renderAll();
@@ -1126,6 +1129,9 @@
           dot.removeAttribute("aria-current");
         }
       });
+      if (currentPage > 0 && Date.now() - lastSuccessfulRefresh > NAVIGATION_REFRESH_DELAY) {
+        refreshData();
+      }
     }
 
     function beginDrag(inputId, clientX, clientY) {
@@ -1291,9 +1297,11 @@
     });
 
     document.addEventListener("visibilitychange", function () {
-      if (document.visibilityState === "visible" && Date.now() - lastSuccessfulRefresh > 60000) {
-        refreshData();
-      }
+      if (document.visibilityState === "visible") refreshData();
+    });
+
+    window.addEventListener("focus", function () {
+      refreshData();
     });
 
     const scheduleImage = document.getElementById("scheduleImage");
