@@ -1115,7 +1115,10 @@
     function goToPage(page) {
       currentPage = Math.max(0, Math.min(PAGE_COUNT - 1, Number(page) || 0));
       appTrack.classList.remove("is-dragging");
-      appTrack.style.transform = "translate3d(" + (-currentPage * 100) + "%, 0, 0)";
+      // El porcentaje de translate se calcula respecto a toda la pista (4 pantallas),
+      // así que aquí se usan píxeles para mover exactamente una pantalla por página.
+      const pageWidth = appShell.clientWidth || window.innerWidth || 1;
+      appTrack.style.transform = "translate3d(" + (-currentPage * pageWidth) + "px, 0, 0)";
       pageDots.forEach(function (dot, index) {
         if (index === currentPage) {
           dot.setAttribute("aria-current", "page");
@@ -1319,4 +1322,3 @@
   </script>
 </body>
 </html>
-
