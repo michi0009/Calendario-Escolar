@@ -1,48 +1,1268 @@
-const CACHE_NAME = "calendario-escolar-v1";
-
-const ARCHIVOS = [
-    "./",
-    "./index.html",
-    "./manifest.json"
-];
-
-self.addEventListener("install", evento => {
-    evento.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => cache.addAll(ARCHIVOS))
-    );
-
-    self.skipWaiting();
-});
-
-self.addEventListener("activate", evento => {
-    evento.waitUntil(
-        caches.keys().then(claves =>
-            Promise.all(
-                claves
-                    .filter(clave => clave !== CACHE_NAME)
-                    .map(clave => caches.delete(clave))
-            )
-        )
-    );
-
-    self.clients.claim();
-});
-
-self.addEventListener("fetch", evento => {
-
-    if (
-        evento.request.url.includes(
-            "calendario-escolar-api.elkitsunelegendario.workers.dev"
-        )
-    ) {
-        return;
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101010">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <title>Mi Calendario Escolar</title>
+  <link rel="manifest" href="./manifest.json">
+  <style>
+    :root {
+      color-scheme: dark;
+      --background: #101010;
+      --surface: #1a1a1b;
+      --surface-raised: #232324;
+      --surface-muted: #2d2d2f;
+      --text: #f7f7f5;
+      --muted: #b8b8ba;
+      --subtle: #858589;
+      --line: #3b3b3e;
+      --danger: #dfdfdf;
+      --success: #d2d2d2;
+      --shadow: 0 12px 30px rgba(0, 0, 0, .24);
     }
 
-    evento.respondWith(
-        caches.match(evento.request)
-            .then(respuesta =>
-                respuesta || fetch(evento.request)
-            )
-    );
-});
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--background);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app-shell {
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      position: relative;
+      touch-action: pan-y;
+      overscroll-behavior: none;
+    }
+
+    .app-track {
+      width: 400%;
+      height: 100%;
+      display: flex;
+      will-change: transform;
+      transition: transform 260ms cubic-bezier(.2, .8, .2, 1);
+      transform: translate3d(0, 0, 0);
+    }
+
+    .app-track.is-dragging {
+      transition: none;
+    }
+
+    .screen {
+      flex: 0 0 25%;
+      width: 25%;
+      min-width: 0;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: max(1rem, env(safe-area-inset-top)) clamp(1rem, 4vw, 3.5rem) calc(4.75rem + env(safe-area-inset-bottom));
+      overflow: hidden;
+      background: var(--background);
+    }
+
+    .screen-header {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: clamp(1rem, 2.2vh, 1.75rem);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 4.8vw, 2.7rem);
+      line-height: 1.08;
+      letter-spacing: -.035em;
+    }
+
+    .clock-block {
+      flex: 0 0 auto;
+      text-align: right;
+    }
+
+    .clock {
+      display: block;
+      font-size: clamp(1.1rem, 3vw, 1.9rem);
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .03em;
+    }
+
+    .date {
+      max-width: 21rem;
+      margin: .25rem 0 0;
+      color: var(--muted);
+      font-size: clamp(.78rem, 1.8vw, 1rem);
+      line-height: 1.3;
+    }
+
+    .schedule-frame {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .schedule-image {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border: 1px solid var(--line);
+      border-radius: .85rem;
+      box-shadow: var(--shadow);
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .scroll-area {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: .1rem .2rem 1rem;
+      scrollbar-color: var(--surface-muted) transparent;
+      scrollbar-width: thin;
+    }
+
+    .scroll-area::-webkit-scrollbar {
+      width: .45rem;
+    }
+
+    .scroll-area::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: var(--surface-muted);
+    }
+
+    .section {
+      margin: 0 0 1.6rem;
+    }
+
+    .section-heading,
+    .day-heading {
+      margin: 0 0 .8rem;
+      padding: 0 0 .55rem;
+      border-bottom: 1px solid var(--line);
+      font-size: clamp(1rem, 2.5vw, 1.24rem);
+      font-weight: 780;
+      letter-spacing: .01em;
+    }
+
+    .card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 0 0 .7rem;
+      padding: .9rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: .8rem;
+      background: var(--surface);
+    }
+
+    .card--overdue {
+      border-left: .32rem solid var(--text);
+      background: #202021;
+    }
+
+    .card--completed {
+      opacity: .56;
+      border-left: .32rem solid var(--subtle);
+    }
+
+    .card--completed .item-title {
+      text-decoration: line-through;
+    }
+
+    .card-main {
+      min-width: 0;
+    }
+
+    .item-title {
+      overflow-wrap: anywhere;
+      font-size: clamp(1rem, 2.5vw, 1.18rem);
+      font-weight: 720;
+      line-height: 1.3;
+    }
+
+    .item-meta,
+    .item-priority,
+    .event-date {
+      margin-top: .3rem;
+      color: var(--muted);
+      font-size: clamp(.8rem, 2vw, .94rem);
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .item-priority {
+      flex: 0 0 auto;
+      min-width: 5.7rem;
+      margin-top: 0;
+      color: var(--text);
+      text-align: right;
+      font-weight: 650;
+    }
+
+    .item-action,
+    .retry-button,
+    .page-dot {
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: var(--surface-raised);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .item-action,
+    .retry-button {
+      flex: 0 0 auto;
+      padding: .5rem .68rem;
+      border-radius: .55rem;
+      font-size: .84rem;
+      font-weight: 700;
+    }
+
+    .item-action:hover,
+    .retry-button:hover,
+    .page-dot:hover {
+      border-color: var(--text);
+    }
+
+    .item-action:disabled {
+      cursor: wait;
+      opacity: .6;
+    }
+
+    .item-action:focus-visible,
+    .retry-button:focus-visible,
+    .page-dot:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 3px;
+    }
+
+    .message {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: .7rem;
+      margin: .35rem 0 1rem;
+      padding: .9rem 1rem;
+      border: 1px dashed var(--line);
+      border-radius: .75rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .message--error {
+      color: var(--text);
+      border-style: solid;
+      background: #1b1b1c;
+    }
+
+    .message--compact {
+      margin-top: 0;
+      padding: .65rem .75rem;
+      font-size: .9rem;
+    }
+
+    .empty-section {
+      margin: 0;
+      color: var(--subtle);
+      font-size: .93rem;
+    }
+
+    .day {
+      margin-bottom: 1.7rem;
+    }
+
+    .plan-card {
+      align-items: flex-start;
+    }
+
+    .plan-card--event {
+      border-left: .32rem solid var(--muted);
+    }
+
+    .plan-card--exam {
+      border-left-color: var(--text);
+    }
+
+    .plan-card--delivery {
+      border-left-color: #c0c0c1;
+    }
+
+    .plan-card--trip {
+      border-left-color: #9d9da0;
+    }
+
+    .plan-card--notice {
+      border-left-color: #77777b;
+    }
+
+    .bottom-navigation {
+      position: fixed;
+      z-index: 10;
+      bottom: max(.85rem, env(safe-area-inset-bottom));
+      left: 50%;
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+      padding: .5rem .65rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(16, 16, 16, .92);
+      box-shadow: var(--shadow);
+      transform: translateX(-50%);
+      backdrop-filter: blur(10px);
+    }
+
+    .page-dot {
+      width: .72rem;
+      height: .72rem;
+      padding: 0;
+      border-radius: 50%;
+      opacity: .45;
+    }
+
+    .page-dot[aria-current="page"] {
+      opacity: 1;
+      background: var(--text);
+      border-color: var(--text);
+      transform: scale(1.12);
+    }
+
+    @media (max-width: 600px) {
+      .screen-header {
+        align-items: flex-start;
+      }
+
+      .card {
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .item-priority {
+        min-width: 0;
+        width: 100%;
+        text-align: left;
+      }
+
+      .item-action {
+        width: 100%;
+      }
+    }
+
+    @media (max-height: 430px) and (orientation: landscape) {
+      .screen {
+        padding-top: max(.65rem, env(safe-area-inset-top));
+      }
+
+      .screen-header {
+        margin-bottom: .65rem;
+      }
+
+      .date {
+        display: none;
+      }
+
+      .schedule-image {
+        max-height: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell" id="appShell" aria-label="Mi Calendario Escolar">
+    <div class="app-track" id="appTrack">
+      <section class="screen" id="horario" aria-labelledby="horarioTitle">
+        <header class="screen-header">
+          <h1 id="horarioTitle">🏫 HORARIO</h1>
+          <div class="clock-block">
+            <time class="clock" id="hora" aria-label="Hora actual">00:00:00</time>
+            <p class="date" id="fecha">Cargando fecha…</p>
+          </div>
+        </header>
+        <div class="schedule-frame" id="scheduleFrame">
+          <img class="schedule-image" id="scheduleImage" src="./horario.png" alt="Horario escolar" draggable="false">
+        </div>
+      </section>
+
+      <section class="screen" id="tareas" aria-labelledby="tareasTitle">
+        <header class="screen-header">
+          <h1 id="tareasTitle">📋 TAREAS</h1>
+        </header>
+        <div class="scroll-area" id="taskList" tabindex="0" aria-live="polite">
+          <div class="message">Cargando tareas…</div>
+        </div>
+      </section>
+
+      <section class="screen" id="calendario" aria-labelledby="calendarioTitle">
+        <header class="screen-header">
+          <h1 id="calendarioTitle">📅 CALENDARIO</h1>
+        </header>
+        <div class="scroll-area" id="eventList" tabindex="0" aria-live="polite">
+          <div class="message">Cargando eventos…</div>
+        </div>
+      </section>
+
+      <section class="screen" id="plan" aria-labelledby="planTitle">
+        <header class="screen-header">
+          <h1 id="planTitle">🎯 PLAN</h1>
+        </header>
+        <div class="scroll-area" id="planList" tabindex="0" aria-live="polite">
+          <div class="message">Generando el plan…</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <nav class="bottom-navigation" aria-label="Pantallas">
+    <button class="page-dot" type="button" data-page="0" aria-label="Ir a Horario" aria-current="page"></button>
+    <button class="page-dot" type="button" data-page="1" aria-label="Ir a Tareas"></button>
+    <button class="page-dot" type="button" data-page="2" aria-label="Ir a Calendario"></button>
+    <button class="page-dot" type="button" data-page="3" aria-label="Ir a Plan"></button>
+  </nav>
+
+  <script>
+    "use strict";
+
+    const API_BASE_URL = "https://calendario-escolar-api.elkitsunelegendario.workers.dev";
+    const PAGE_COUNT = 4;
+    const DATA_REFRESH_INTERVAL = 5 * 60 * 1000;
+
+    const appShell = document.getElementById("appShell");
+    const appTrack = document.getElementById("appTrack");
+    const taskList = document.getElementById("taskList");
+    const eventList = document.getElementById("eventList");
+    const planList = document.getElementById("planList");
+    const clockElement = document.getElementById("hora");
+    const dateElement = document.getElementById("fecha");
+    const pageDots = Array.from(document.querySelectorAll(".page-dot"));
+
+    let currentPage = 0;
+    let refreshPromise = null;
+    let lastSuccessfulRefresh = 0;
+    let actionNotice = "";
+    let visibleDayKey = localDayKey(new Date());
+
+    const dataState = {
+      tasks: { status: "loading", items: [], error: "" },
+      events: { status: "loading", items: [], error: "" }
+    };
+
+    const dragState = {
+      active: false,
+      pointerId: null,
+      startX: 0,
+      startY: 0,
+      deltaX: 0,
+      direction: ""
+    };
+
+    let lastDragEndAt = 0;
+
+    function normalise(value) {
+      return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLocaleLowerCase("es-ES")
+        .trim()
+        .replace(/\s+/g, " ");
+    }
+
+    function capitalise(value) {
+      return value ? value.charAt(0).toLocaleUpperCase("es-ES") + value.slice(1) : "";
+    }
+
+    function localDayKey(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return year + "-" + month + "-" + day;
+    }
+
+    function validDayKey(value) {
+      return /^\d{4}-\d{2}-\d{2}$/.test(value);
+    }
+
+    function dateKeyFromNotion(value) {
+      const key = String(value || "").slice(0, 10);
+      return validDayKey(key) ? key : "";
+    }
+
+    function dateFromDayKey(key) {
+      if (!validDayKey(key)) return null;
+      const parts = key.split("-").map(Number);
+      const date = new Date(parts[0], parts[1] - 1, parts[2]);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function dayDifference(fromKey, toKey) {
+      const from = dateFromDayKey(fromKey);
+      const to = dateFromDayKey(toKey);
+      if (!from || !to) return 0;
+      return Math.round((to.getTime() - from.getTime()) / 86400000);
+    }
+
+    function formatDay(value, options) {
+      const key = dateKeyFromNotion(value);
+      const date = dateFromDayKey(key);
+      if (!date) return value ? String(value) : "Sin fecha";
+      return date.toLocaleDateString("es-ES", options);
+    }
+
+    function formatDueDate(value) {
+      return formatDay(value, { day: "numeric", month: "long", year: "numeric" });
+    }
+
+    function findProperty(properties, names) {
+      if (!properties || typeof properties !== "object") return null;
+      const wanted = names.map(normalise);
+      for (const name of Object.keys(properties)) {
+        if (wanted.includes(normalise(name))) return properties[name];
+      }
+      return null;
+    }
+
+    function findPropertyByType(properties, types) {
+      if (!properties || typeof properties !== "object") return null;
+      for (const property of Object.values(properties)) {
+        if (property && types.includes(property.type)) return property;
+      }
+      return null;
+    }
+
+    function propertyText(property) {
+      if (!property || typeof property !== "object") return "";
+
+      const joinRichText = function (parts) {
+        return Array.isArray(parts)
+          ? parts.map(function (part) {
+              return part && (part.plain_text || part.text && part.text.content) || "";
+            }).join("")
+          : "";
+      };
+
+      if (property.type === "title" || Array.isArray(property.title)) return joinRichText(property.title);
+      if (property.type === "rich_text" || Array.isArray(property.rich_text)) return joinRichText(property.rich_text);
+      if (property.type === "select") return property.select && property.select.name || "";
+      if (property.type === "status") return property.status && property.status.name || "";
+      if (property.type === "multi_select") {
+        return Array.isArray(property.multi_select) ? property.multi_select.map(function (item) {
+          return item && item.name || "";
+        }).filter(Boolean).join(", ") : "";
+      }
+      if (property.type === "formula" && property.formula) {
+        if (property.formula.string !== null && property.formula.string !== undefined) return String(property.formula.string);
+        if (property.formula.number !== null && property.formula.number !== undefined) return String(property.formula.number);
+        if (property.formula.boolean !== null && property.formula.boolean !== undefined) return property.formula.boolean ? "Sí" : "No";
+        return "";
+      }
+      if (property.type === "number") return property.number === null || property.number === undefined ? "" : String(property.number);
+      if (property.type === "checkbox") return property.checkbox ? "Sí" : "No";
+      if (property.type === "url") return property.url || "";
+      return "";
+    }
+
+    function propertyDate(property) {
+      if (!property || typeof property !== "object") return "";
+      if (property.type === "date" && property.date) return property.date.start || "";
+      if (property.type === "formula" && property.formula && property.formula.date) return property.formula.date.start || "";
+      return "";
+    }
+
+    function extractTask(page) {
+      const properties = page && page.properties || {};
+      const titleProperty = findProperty(properties, ["Tarea", "Nombre", "Título", "Titulo", "Name"]) ||
+        findPropertyByType(properties, ["title"]);
+      const subjectProperty = findProperty(properties, ["Asignatura", "Materia"]);
+      const dueProperty = findProperty(properties, ["Fecha de entrega", "Entrega", "Fecha límite", "Fecha limite", "Fecha"]) ||
+        findPropertyByType(properties, ["date"]);
+      const priorityProperty = findProperty(properties, ["Prioridad", "Priority"]);
+      const statusProperty = findProperty(properties, ["Estado", "Status"]);
+
+      return {
+        id: String(page && page.id || ""),
+        title: propertyText(titleProperty) || "Tarea sin nombre",
+        subject: propertyText(subjectProperty),
+        dueDate: propertyDate(dueProperty),
+        priority: propertyText(priorityProperty),
+        status: propertyText(statusProperty),
+        lastEdited: String(page && page.last_edited_time || "")
+      };
+    }
+
+    function extractEvent(page) {
+      const properties = page && page.properties || {};
+      const titleProperty = findProperty(properties, ["Evento", "Nombre", "Título", "Titulo", "Name"]) ||
+        findPropertyByType(properties, ["title"]) ||
+        findPropertyByType(properties, ["rich_text"]);
+      const dateProperty = findProperty(properties, ["Fecha", "Fecha del evento", "Día", "Dia", "Date"]) ||
+        findPropertyByType(properties, ["date"]);
+      const typeProperty = findProperty(properties, ["Tipo", "Categoría", "Categoria", "Clase"]);
+      const subjectProperty = findProperty(properties, ["Asignatura", "Materia"]);
+      const notesProperty = findProperty(properties, ["Notas", "Descripción", "Descripcion", "Detalles", "Detalle"]);
+
+      let category = propertyText(typeProperty);
+      if (!category) {
+        for (const property of Object.values(properties)) {
+          const candidate = normalise(propertyText(property));
+          if (candidate.includes("examen") || candidate.includes("entrega") || candidate.includes("excursion") || candidate.includes("aviso")) {
+            category = propertyText(property);
+            break;
+          }
+        }
+      }
+
+      return {
+        id: String(page && page.id || ""),
+        title: propertyText(titleProperty) || "Evento sin nombre",
+        date: propertyDate(dateProperty),
+        category: category,
+        subject: propertyText(subjectProperty),
+        notes: propertyText(notesProperty)
+      };
+    }
+
+    function isCompleted(task) {
+      const status = normalise(task.status);
+      return status === "hecha" || status === "hecho" || status === "completada" || status === "completado";
+    }
+
+    function priorityRank(value) {
+      const priority = normalise(value);
+      if (priority.includes("urgente") || priority.includes("alta") || priority.includes("roja")) return 0;
+      if (priority.includes("normal") || priority.includes("media") || priority.includes("amarilla")) return 1;
+      if (priority.includes("baja") || priority.includes("verde")) return 2;
+      return 3;
+    }
+
+    function taskGroups(tasks) {
+      const today = localDayKey(new Date());
+      const groups = { overdue: [], pending: [], done: [] };
+
+      tasks.forEach(function (task) {
+        if (isCompleted(task)) {
+          groups.done.push(task);
+          return;
+        }
+
+        const dueKey = dateKeyFromNotion(task.dueDate);
+        if (!dueKey) {
+          groups.pending.push(task);
+          return;
+        }
+
+        const lateDays = dayDifference(dueKey, today);
+        if (lateDays >= 1 && lateDays <= 3) {
+          groups.overdue.push(task);
+        } else if (lateDays <= 0) {
+          groups.pending.push(task);
+        }
+      });
+
+      const byPriorityThenDate = function (first, second) {
+        const priorityDifference = priorityRank(first.priority) - priorityRank(second.priority);
+        if (priorityDifference) return priorityDifference;
+        const firstDate = dateKeyFromNotion(first.dueDate) || "9999-12-31";
+        const secondDate = dateKeyFromNotion(second.dueDate) || "9999-12-31";
+        return firstDate.localeCompare(secondDate) || first.title.localeCompare(second.title, "es");
+      };
+
+      groups.overdue.sort(byPriorityThenDate);
+      groups.pending.sort(byPriorityThenDate);
+      groups.done.sort(function (first, second) {
+        const firstEdited = Date.parse(first.lastEdited);
+        const secondEdited = Date.parse(second.lastEdited);
+        const firstTime = Number.isNaN(firstEdited) ? 0 : firstEdited;
+        const secondTime = Number.isNaN(secondEdited) ? 0 : secondEdited;
+        return secondTime - firstTime || first.title.localeCompare(second.title, "es");
+      });
+      return groups;
+    }
+
+    function appendMessage(container, text, kind, retry) {
+      const message = document.createElement("div");
+      message.className = "message" + (kind === "error" ? " message--error" : "") + (kind === "compact" ? " message--compact" : "");
+      const copy = document.createElement("span");
+      copy.textContent = text;
+      message.append(copy);
+      if (retry) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "retry-button";
+        button.textContent = "Reintentar";
+        button.addEventListener("click", refreshData);
+        message.append(button);
+      }
+      container.append(message);
+    }
+
+    function makeTextElement(tagName, className, text) {
+      const element = document.createElement(tagName);
+      if (className) element.className = className;
+      element.textContent = text;
+      return element;
+    }
+
+    function taskMeta(task) {
+      const subject = task.subject || "Sin asignatura";
+      const due = dateKeyFromNotion(task.dueDate) ? "Entrega: " + formatDueDate(task.dueDate) : "Sin fecha de entrega";
+      return subject + " · " + due;
+    }
+
+    function makeTaskCard(task) {
+      const completed = isCompleted(task);
+      const dueKey = dateKeyFromNotion(task.dueDate);
+      const overdue = !completed && dueKey && dayDifference(dueKey, localDayKey(new Date())) > 0;
+      const card = document.createElement("article");
+      card.className = "card" + (completed ? " card--completed" : "") + (overdue ? " card--overdue" : "");
+
+      const main = document.createElement("div");
+      main.className = "card-main";
+      main.append(
+        makeTextElement("div", "item-title", (completed ? "☑ " : "☐ ") + task.title),
+        makeTextElement("div", "item-meta", taskMeta(task))
+      );
+      card.append(main);
+
+      const priority = makeTextElement("div", "item-priority", task.priority || "Sin prioridad");
+      card.append(priority);
+
+      if (!completed && task.id) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "item-action";
+        button.textContent = task.completing ? "Guardando…" : "Marcar hecha";
+        button.disabled = Boolean(task.completing);
+        button.addEventListener("click", function () {
+          completeTask(task);
+        });
+        card.append(button);
+      }
+      return card;
+    }
+
+    function appendTaskSection(container, title, items) {
+      const section = document.createElement("section");
+      section.className = "section";
+      section.append(makeTextElement("h2", "section-heading", title));
+      if (!items.length) {
+        section.append(makeTextElement("p", "empty-section", "No hay tareas en esta sección."));
+      } else {
+        items.forEach(function (task) {
+          section.append(makeTaskCard(task));
+        });
+      }
+      container.append(section);
+    }
+
+    function renderTasks() {
+      taskList.replaceChildren();
+      if (dataState.tasks.status === "loading" && !dataState.tasks.items.length) {
+        appendMessage(taskList, "Cargando tareas…");
+        return;
+      }
+      if (dataState.tasks.error && !dataState.tasks.items.length) {
+        appendMessage(taskList, "No se pudieron cargar las tareas. " + dataState.tasks.error, "error", true);
+        return;
+      }
+      if (dataState.tasks.error) appendMessage(taskList, "Mostrando las últimas tareas disponibles. " + dataState.tasks.error, "compact", true);
+      if (actionNotice) appendMessage(taskList, actionNotice, actionNotice.startsWith("No se") ? "error" : "compact");
+
+      const groups = taskGroups(dataState.tasks.items);
+      appendTaskSection(taskList, "⚠️ VENCIDAS", groups.overdue);
+      appendTaskSection(taskList, "📋 PENDIENTES", groups.pending);
+      appendTaskSection(taskList, "✅ HECHAS", groups.done);
+    }
+
+    function eventTimeValue(event) {
+      const parsed = Date.parse(event.date);
+      return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+    }
+
+    function renderEvents() {
+      eventList.replaceChildren();
+      if (dataState.events.status === "loading" && !dataState.events.items.length) {
+        appendMessage(eventList, "Cargando eventos…");
+        return;
+      }
+      if (dataState.events.error && !dataState.events.items.length) {
+        appendMessage(eventList, "No se pudieron cargar los eventos. " + dataState.events.error, "error", true);
+        return;
+      }
+      if (dataState.events.error) appendMessage(eventList, "Mostrando los últimos eventos disponibles. " + dataState.events.error, "compact", true);
+
+      const events = dataState.events.items.slice().sort(function (first, second) {
+        return eventTimeValue(first) - eventTimeValue(second) || first.title.localeCompare(second.title, "es");
+      });
+      if (!events.length) {
+        appendMessage(eventList, "📅 No hay eventos");
+        return;
+      }
+
+      events.forEach(function (event) {
+        const card = document.createElement("article");
+        card.className = "card";
+        const main = document.createElement("div");
+        main.className = "card-main";
+        main.append(
+          makeTextElement("div", "item-title", "📅 " + event.title),
+          makeTextElement("div", "event-date", formatDueDate(event.date))
+        );
+        card.append(main);
+        eventList.append(card);
+      });
+    }
+
+    function eventKind(event) {
+      const category = normalise(event.category);
+      if (category.includes("examen") || category.includes("prueba")) return "exam";
+      if (category.includes("entrega") || category.includes("deadline")) return "delivery";
+      if (category.includes("excursion") || category.includes("salida")) return "trip";
+      return "notice";
+    }
+
+    function eventLabel(kind) {
+      if (kind === "exam") return "📝 EXAMEN";
+      if (kind === "delivery") return "📦 ENTREGA";
+      if (kind === "trip") return "🚌 EXCURSIÓN";
+      return "📌 AVISO";
+    }
+
+    function makePlanTaskCard(task) {
+      const completed = isCompleted(task);
+      const card = document.createElement("article");
+      card.className = "card plan-card" + (completed ? " card--completed" : "");
+      const main = document.createElement("div");
+      main.className = "card-main";
+      const details = task.subject || "Sin asignatura";
+      const priority = task.priority ? " · " + task.priority : "";
+      main.append(
+        makeTextElement("div", "item-title", (completed ? "☑ " : "☐ ") + task.title),
+        makeTextElement("div", "item-meta", details + priority)
+      );
+      card.append(main);
+      if (!completed && task.id) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "item-action";
+        button.textContent = task.completing ? "Guardando…" : "Marcar hecha";
+        button.disabled = Boolean(task.completing);
+        button.addEventListener("click", function () {
+          completeTask(task);
+        });
+        card.append(button);
+      }
+      return card;
+    }
+
+    function makePlanEventCard(event) {
+      const kind = eventKind(event);
+      const card = document.createElement("article");
+      card.className = "card plan-card plan-card--event plan-card--" + kind;
+      const main = document.createElement("div");
+      main.className = "card-main";
+      const heading = eventLabel(kind) + (event.subject ? " · " + event.subject : "");
+      const description = event.notes || event.title;
+      main.append(
+        makeTextElement("div", "item-title", heading),
+        makeTextElement("div", "item-meta", description)
+      );
+      card.append(main);
+      return card;
+    }
+
+    function nextSevenDays() {
+      const first = dateFromDayKey(localDayKey(new Date()));
+      const days = [];
+      for (let index = 0; index < 7; index += 1) {
+        const day = new Date(first);
+        day.setDate(first.getDate() + index);
+        days.push(day);
+      }
+      return days;
+    }
+
+    function dayHeading(day, index) {
+      if (index === 0) return "📍 HOY";
+      return capitalise(day.toLocaleDateString("es-ES", {
+        weekday: "long",
+        day: "numeric",
+        month: "long"
+      }));
+    }
+
+    function renderPlan() {
+      planList.replaceChildren();
+      const noTaskData = dataState.tasks.status === "loading" && !dataState.tasks.items.length;
+      const noEventData = dataState.events.status === "loading" && !dataState.events.items.length;
+      if (noTaskData && noEventData) {
+        appendMessage(planList, "Generando el plan…");
+        return;
+      }
+      if (dataState.tasks.error && dataState.events.error && !dataState.tasks.items.length && !dataState.events.items.length) {
+        appendMessage(planList, "No se pudo generar el plan. Comprueba la conexión e inténtalo de nuevo.", "error", true);
+        return;
+      }
+      if (dataState.tasks.error || dataState.events.error) {
+        appendMessage(planList, "El plan puede estar incompleto porque no se pudieron actualizar todos los datos.", "compact", true);
+      }
+      if (actionNotice) appendMessage(planList, actionNotice, actionNotice.startsWith("No se") ? "error" : "compact");
+
+      const tasksByDay = new Map();
+      dataState.tasks.items.forEach(function (task) {
+        const key = dateKeyFromNotion(task.dueDate);
+        if (!key) return;
+        if (!tasksByDay.has(key)) tasksByDay.set(key, []);
+        tasksByDay.get(key).push(task);
+      });
+      tasksByDay.forEach(function (items) {
+        items.sort(function (first, second) {
+          return priorityRank(first.priority) - priorityRank(second.priority) || first.title.localeCompare(second.title, "es");
+        });
+      });
+
+      const eventsByDay = new Map();
+      dataState.events.items.forEach(function (event) {
+        const key = dateKeyFromNotion(event.date);
+        if (!key) return;
+        if (!eventsByDay.has(key)) eventsByDay.set(key, []);
+        eventsByDay.get(key).push(event);
+      });
+      eventsByDay.forEach(function (items) {
+        items.sort(function (first, second) {
+          return eventTimeValue(first) - eventTimeValue(second) || first.title.localeCompare(second.title, "es");
+        });
+      });
+
+      nextSevenDays().forEach(function (day, index) {
+        const key = localDayKey(day);
+        const section = document.createElement("section");
+        section.className = "day";
+        section.append(makeTextElement("h2", "day-heading", dayHeading(day, index)));
+        const tasks = tasksByDay.get(key) || [];
+        const events = eventsByDay.get(key) || [];
+
+        tasks.forEach(function (task) {
+          section.append(makePlanTaskCard(task));
+        });
+        events.forEach(function (event) {
+          section.append(makePlanEventCard(event));
+        });
+        if (!tasks.length && !events.length) {
+          section.append(makeTextElement("p", "empty-section", "🎉 Nada programado"));
+        }
+        planList.append(section);
+      });
+    }
+
+    function renderAll() {
+      renderTasks();
+      renderEvents();
+      renderPlan();
+    }
+
+    async function fetchCollection(path, label) {
+      try {
+        const response = await fetch(API_BASE_URL + path, {
+          method: "GET",
+          headers: { "Accept": "application/json" },
+          cache: "no-store"
+        });
+        let payload;
+        try {
+          payload = await response.json();
+        } catch (error) {
+          throw new Error("La API devolvió una respuesta no válida.");
+        }
+        if (!response.ok) {
+          throw new Error("Error HTTP " + response.status + ".");
+        }
+        const pages = Array.isArray(payload) ? payload : payload && payload.results;
+        if (!Array.isArray(pages)) {
+          throw new Error("La respuesta de " + label + " no contiene una lista.");
+        }
+        return { ok: true, pages: pages };
+      } catch (error) {
+        const message = error && error.message ? error.message : "Error de red.";
+        return { ok: false, error: message };
+      }
+    }
+
+    async function refreshData() {
+      if (refreshPromise) return refreshPromise;
+      if (!dataState.tasks.items.length) dataState.tasks.status = "loading";
+      if (!dataState.events.items.length) dataState.events.status = "loading";
+      renderAll();
+
+      refreshPromise = Promise.all([
+        fetchCollection("/tasks", "tareas"),
+        fetchCollection("/events", "eventos")
+      ]).then(function (results) {
+        const taskResult = results[0];
+        const eventResult = results[1];
+
+        if (taskResult.ok) {
+          dataState.tasks = {
+            status: "ready",
+            items: taskResult.pages.map(extractTask),
+            error: ""
+          };
+        } else {
+          dataState.tasks.status = dataState.tasks.items.length ? "ready" : "error";
+          dataState.tasks.error = taskResult.error;
+        }
+
+        if (eventResult.ok) {
+          dataState.events = {
+            status: "ready",
+            items: eventResult.pages.map(extractEvent),
+            error: ""
+          };
+        } else {
+          dataState.events.status = dataState.events.items.length ? "ready" : "error";
+          dataState.events.error = eventResult.error;
+        }
+        lastSuccessfulRefresh = Date.now();
+      }).finally(function () {
+        refreshPromise = null;
+        renderAll();
+      });
+      return refreshPromise;
+    }
+
+    async function completeTask(task) {
+      if (!task.id || task.completing) return;
+      task.completing = true;
+      actionNotice = "";
+      renderTasks();
+      renderPlan();
+      try {
+        const response = await fetch(API_BASE_URL + "/complete-task", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ pageId: task.id }),
+          cache: "no-store"
+        });
+        if (!response.ok) throw new Error("Error HTTP " + response.status + ".");
+        task.status = "Hecha";
+        task.lastEdited = new Date().toISOString();
+        actionNotice = "Tarea marcada como hecha.";
+        window.setTimeout(refreshData, 400);
+      } catch (error) {
+        actionNotice = "No se pudo marcar la tarea como hecha. " + (error && error.message ? error.message : "Error de red.");
+      } finally {
+        task.completing = false;
+        renderTasks();
+        renderPlan();
+      }
+    }
+
+    function updateClock() {
+      const now = new Date();
+      clockElement.textContent = now.toLocaleTimeString("es-ES", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      });
+      dateElement.textContent = capitalise(now.toLocaleDateString("es-ES", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      }));
+
+      const today = localDayKey(now);
+      if (today !== visibleDayKey) {
+        visibleDayKey = today;
+        renderTasks();
+        renderPlan();
+        refreshData();
+      }
+    }
+
+    function goToPage(page) {
+      currentPage = Math.max(0, Math.min(PAGE_COUNT - 1, Number(page) || 0));
+      appTrack.classList.remove("is-dragging");
+      appTrack.style.transform = "translate3d(" + (-currentPage * 100) + "%, 0, 0)";
+      pageDots.forEach(function (dot, index) {
+        if (index === currentPage) {
+          dot.setAttribute("aria-current", "page");
+        } else {
+          dot.removeAttribute("aria-current");
+        }
+      });
+    }
+
+    function releaseDrag() {
+      if (!dragState.active) return;
+      const wasHorizontal = dragState.direction === "horizontal";
+      const distance = dragState.deltaX;
+      const threshold = Math.max(56, appShell.clientWidth * .18);
+      dragState.active = false;
+      dragState.pointerId = null;
+      appTrack.classList.remove("is-dragging");
+
+      if (wasHorizontal && Math.abs(distance) >= threshold) {
+        goToPage(currentPage + (distance < 0 ? 1 : -1));
+        lastDragEndAt = performance.now();
+      } else {
+        goToPage(currentPage);
+      }
+      dragState.direction = "";
+    }
+
+    appShell.addEventListener("pointerdown", function (event) {
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      if (event.target.closest("button, a, input, textarea, select, label")) return;
+      dragState.active = true;
+      dragState.pointerId = event.pointerId;
+      dragState.startX = event.clientX;
+      dragState.startY = event.clientY;
+      dragState.deltaX = 0;
+      dragState.direction = "";
+      try {
+        appShell.setPointerCapture(event.pointerId);
+      } catch (error) {
+        // Algunos navegadores antiguos no implementan la captura de puntero.
+      }
+    });
+
+    appShell.addEventListener("pointermove", function (event) {
+      if (!dragState.active || event.pointerId !== dragState.pointerId) return;
+      const deltaX = event.clientX - dragState.startX;
+      const deltaY = event.clientY - dragState.startY;
+      if (!dragState.direction && Math.max(Math.abs(deltaX), Math.abs(deltaY)) > 10) {
+        dragState.direction = Math.abs(deltaX) > Math.abs(deltaY) * 1.2 ? "horizontal" : "vertical";
+      }
+      if (dragState.direction !== "horizontal") return;
+
+      event.preventDefault();
+      dragState.deltaX = deltaX;
+      let offset = deltaX;
+      if ((currentPage === 0 && offset > 0) || (currentPage === PAGE_COUNT - 1 && offset < 0)) {
+        offset *= .28;
+      }
+      const width = appShell.clientWidth || 1;
+      const translate = -currentPage * width + offset;
+      appTrack.classList.add("is-dragging");
+      appTrack.style.transform = "translate3d(" + translate + "px, 0, 0)";
+    }, { passive: false });
+
+    appShell.addEventListener("pointerup", function (event) {
+      if (dragState.active && event.pointerId === dragState.pointerId) releaseDrag();
+    });
+
+    appShell.addEventListener("pointercancel", function (event) {
+      if (dragState.active && event.pointerId === dragState.pointerId) releaseDrag();
+    });
+
+    appShell.addEventListener("lostpointercapture", function () {
+      if (dragState.active) releaseDrag();
+    });
+
+    document.addEventListener("click", function (event) {
+      if (performance.now() - lastDragEndAt < 350) event.preventDefault();
+    }, true);
+
+    pageDots.forEach(function (dot) {
+      dot.addEventListener("click", function () {
+        goToPage(Number(dot.dataset.page));
+      });
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.target.closest("input, textarea, select")) return;
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        goToPage(currentPage + 1);
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        goToPage(currentPage - 1);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        goToPage(0);
+      } else if (event.key === "End") {
+        event.preventDefault();
+        goToPage(PAGE_COUNT - 1);
+      }
+    });
+
+    window.addEventListener("resize", function () {
+      goToPage(currentPage);
+    });
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible" && Date.now() - lastSuccessfulRefresh > 60000) {
+        refreshData();
+      }
+    });
+
+    const scheduleImage = document.getElementById("scheduleImage");
+    scheduleImage.addEventListener("error", function () {
+      scheduleImage.remove();
+      const frame = document.getElementById("scheduleFrame");
+      appendMessage(frame, "No se encontró horario.png. Colócalo junto a index.html.", "error");
+    });
+
+    function registerServiceWorker() {
+      if (!("serviceWorker" in navigator)) return;
+      const hadController = Boolean(navigator.serviceWorker.controller);
+      let reloadedAfterUpdate = false;
+      navigator.serviceWorker.addEventListener("controllerchange", function () {
+        if (hadController && !reloadedAfterUpdate) {
+          reloadedAfterUpdate = true;
+          window.location.reload();
+        }
+      });
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("./sw.js")
+          .then(function (registration) {
+            return registration.update();
+          })
+          .catch(function (error) {
+            console.warn("No se pudo registrar el modo sin conexión.", error);
+          });
+      });
+    }
+
+    goToPage(0);
+    updateClock();
+    window.setInterval(updateClock, 1000);
+    window.setInterval(refreshData, DATA_REFRESH_INTERVAL);
+    refreshData();
+    registerServiceWorker();
+  </script>
+</body>
+</html>
