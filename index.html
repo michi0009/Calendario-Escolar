@@ -1,3189 +1,1268 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Calendario Escolar</title>
-
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#111827">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    
-    <style>
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-
-        html,
-        body {
-            width: 100%;
-            height: 100%;
-
-            overflow: hidden;
-
-            font-family: Arial, sans-serif;
-
-            background: #111;
-
-            color: white;
-        }
-
-
-        /* =========================
-           APP
-        ========================= */
-
-        .app {
-
-            width: 100vw;
-
-            /*
-             * svh = altura estable del viewport.
-             * Evita que la barra del navegador
-             * haga que la pantalla quede cortada.
-             */
-            height: 100svh;
-
-            display: flex;
-
-            /*
-             * El navegador NO hará el swipe
-             * horizontal por su cuenta.
-             * Lo controlamos nosotros.
-             */
-            overflow-x: auto;
-            overflow-y: hidden;
-
-            position: relative;
-
-            scrollbar-width: none;
-
-            /*
-             * Permitimos el scroll vertical
-             * dentro de las listas.
-             */
-            touch-action: pan-x pan-y;
-
-            /*
-             * Evita que el navegador haga
-             * un scroll horizontal extraño.
-             */
-            overscroll-behavior-x: none;
-        }
-
-
-        .app::-webkit-scrollbar {
-            display: none;
-        }
-
-
-        /* =========================
-           PANTALLAS
-        ========================= */
-
-        .pantalla {
-
-            min-width: 100vw;
-
-            width: 100vw;
-
-            height: 100svh;
-
-            flex-shrink: 0;
-
-            display: flex;
-
-            flex-direction: column;
-
-            padding: 30px 45px;
-
-            /*
-             * Cada pantalla ocupa exactamente
-             * una pantalla.
-             */
-            scroll-snap-align: start;
-        }
-
-
-        /* =========================
-           CABECERA
-        ========================= */
-
-        .cabecera {
-
-            display: flex;
-
-            justify-content: space-between;
-
-            align-items: center;
-
-            margin-bottom: 25px;
-        }
-
-
-        .titulo {
-
-            font-size: 42px;
-
-            font-weight: bold;
-        }
-
-
-        .hora {
-
-            font-size: 32px;
-
-            font-weight: bold;
-        }
-
-
-        .fecha {
-
-            font-size: 20px;
-
-            opacity: 0.75;
-
-            margin-top: 4px;
-        }
-
-
-        /* =========================
-           HORARIO
-        ========================= */
-
-        #horario {
-
-            background: #111827;
-        }
-
-
-        .horario-imagen {
-
-            flex: 1;
-
-            min-height: 0;
-
-            display: flex;
-
-            justify-content: center;
-
-            align-items: center;
-        }
-
-
-        .horario-imagen img {
-
-            max-width: 95%;
-
-            max-height: 85%;
-
-            width: auto;
-
-            height: auto;
-
-            object-fit: contain;
-
-            border-radius: 15px;
-
-            /*
-             * Evita comportamientos raros
-             * al tocar la imagen.
-             */
-            user-select: none;
-
-            -webkit-user-drag: none;
-        }
-
-
-        /* =========================
-           TAREAS
-        ========================= */
-
-        #tareas {
-
-            background: #172554;
-
-            overflow: hidden;
-        }
-
-
-        .lista-tareas {
-
-            flex: 1;
-
-            min-height: 0;
-
-            overflow-y: auto;
-
-            overflow-x: hidden;
-
-            padding-right: 5px;
-
-            padding-bottom: 30px;
-
-            /*
-             * Aquí sí permitimos scroll vertical.
-             */
-            touch-action: pan-y;
-        }
-
-
-        /* =========================
-           SECCIONES DE TAREAS
-        ========================= */
-
-        .seccion-tareas {
-
-            margin-bottom: 30px;
-        }
-
-
-        .titulo-seccion {
-
-            font-size: 27px;
-
-            font-weight: bold;
-
-            margin-top: 10px;
-
-            margin-bottom: 12px;
-
-            padding-bottom: 8px;
-
-            border-bottom:
-                2px solid
-                rgba(255,255,255,0.15);
-        }
-
-
-        /* =========================
-           TARJETA NORMAL
-        ========================= */
-
-        .tarea {
-
-            background:
-                rgba(255,255,255,0.1);
-
-            border-radius: 15px;
-
-            padding: 18px 20px;
-
-            margin-bottom: 12px;
-
-            display: flex;
-
-            justify-content: space-between;
-
-            align-items: center;
-
-            gap: 15px;
-        }
-
-
-        .tarea-nombre {
-
-            font-size: 25px;
-
-            font-weight: bold;
-        }
-
-
-        .tarea-info {
-
-            font-size: 18px;
-
-            opacity: 0.75;
-
-            margin-top: 5px;
-        }
-
-
-        .prioridad {
-
-            font-size: 20px;
-
-            white-space: nowrap;
-        }
-
-
-        /* =========================
-           VENCIDAS
-        ========================= */
-
-        .tarea-vencida {
-
-            background:
-                rgba(127, 29, 29, 0.45);
-
-            border-left:
-                5px solid #ef4444;
-        }
-
-
-        .tarea-vencida .tarea-nombre {
-
-            color: #fecaca;
-        }
-
-
-        /* =========================
-           HECHAS
-        ========================= */
-
-        .tarea-hecha {
-
-            background:
-                rgba(0,0,0,0.25);
-
-            opacity: 0.55;
-
-            border-left:
-                5px solid #6b7280;
-        }
-
-
-        .tarea-hecha .tarea-nombre {
-
-            text-decoration: line-through;
-        }
-
-
-        .tarea-hecha .tarea-info {
-
-            text-decoration: line-through;
-        }
-
-
-        /* =========================
-           CALENDARIO
-        ========================= */
-
-        #calendario {
-
-            background: #312e81;
-
-            overflow: hidden;
-        }
-
-
-        #listaEventos {
-
-            flex: 1;
-
-            min-height: 0;
-
-            overflow-y: auto;
-
-            overflow-x: hidden;
-
-            padding-bottom: 30px;
-
-            touch-action: pan-y;
-        }
-
-
-        .evento {
-
-            background:
-                rgba(255,255,255,0.1);
-
-            border-radius: 15px;
-
-            padding: 20px;
-
-            margin-top: 15px;
-        }
-
-
-        .evento-nombre {
-
-            font-size: 25px;
-
-            font-weight: bold;
-        }
-
-
-        .evento-fecha {
-
-            font-size: 18px;
-
-            margin-top: 5px;
-
-            opacity: 0.75;
-        }
-
-
-        /* =========================
-           MENSAJES
-        ========================= */
-
-        .mensaje {
-
-            margin-top: 30px;
-
-            font-size: 24px;
-
-            opacity: 0.65;
-        }
-
-
-        .error {
-
-            color: #fca5a5;
-
-            font-size: 18px;
-
-            margin-top: 20px;
-        }
-
-        /* =========================
-           PLAN
-        ========================= */
-        
-        #plan {
-            background: #064e3b;
-            overflow: hidden;
-        }
-        
-        #listaPlan {
-            flex: 1;
-            min-height: 0;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding-bottom: 40px;
-            touch-action: pan-y;
-        }
-        
-        .dia-plan {
-            margin-bottom: 30px;
-        }
-        
-        .titulo-dia {
-            font-size: 30px;
-            font-weight: bold;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid rgba(255,255,255,0.15);
-        }
-        
-        .item-plan {
-            background: rgba(255,255,255,0.1);
-            border-radius: 15px;
-            padding: 18px 20px;
-            margin-bottom: 12px;
-        }
-        
-        .item-plan.tarea-plan {
-            cursor: pointer;
-        }
-        
-        .item-plan.tarea-plan:active {
-            transform: scale(0.98);
-        }
-        
-        .plan-nombre {
-            font-size: 23px;
-            font-weight: bold;
-        }
-        
-        .plan-info {
-            font-size: 17px;
-            opacity: 0.75;
-            margin-top: 5px;
-        }
-        
-        .plan-aviso {
-            background: rgba(255,255,255,0.07);
-            border-left: 5px solid rgba(255,255,255,0.4);
-        }
-        
-        .plan-examen {
-            border-left: 5px solid #f59e0b;
-        }
-        
-        .plan-entrega {
-            border-left: 5px solid #60a5fa;
-        }
-        
-        .plan-hecha {
-            opacity: 0.45;
-        }
-        
-        .plan-hecha .plan-nombre {
-            text-decoration: line-through;
-        }
-        
-        .casilla {
-            font-size: 24px;
-            margin-right: 10px;
-        }
-        /* =========================
-           INDICADORES
-        ========================= */
-
-        .indicadores {
-
-            position: fixed;
-
-            bottom: 15px;
-
-            left: 50%;
-
-            transform:
-                translateX(-50%);
-
-            display: flex;
-
-            gap: 10px;
-
-            z-index: 100;
-
-            pointer-events: none;
-
-            background: rgba(0,0,0,0.3);
-            padding: 8px;
-            border-radius: 20px;
-        }
-
-
-        .punto {
-
-            width: 10px;
-
-            height: 10px;
-
-            border-radius: 50%;
-
-            background: white;
-
-            opacity: 0.4;
-        }
-
-
-        .punto.activo {
-
-            opacity: 1;
-        }
-
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101010">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <title>Mi Calendario Escolar</title>
+  <link rel="manifest" href="./manifest.json">
+  <style>
+    :root {
+      color-scheme: dark;
+      --background: #101010;
+      --surface: #1a1a1b;
+      --surface-raised: #232324;
+      --surface-muted: #2d2d2f;
+      --text: #f7f7f5;
+      --muted: #b8b8ba;
+      --subtle: #858589;
+      --line: #3b3b3e;
+      --danger: #dfdfdf;
+      --success: #d2d2d2;
+      --shadow: 0 12px 30px rgba(0, 0, 0, .24);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--background);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app-shell {
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      position: relative;
+      touch-action: pan-y;
+      overscroll-behavior: none;
+    }
+
+    .app-track {
+      width: 400%;
+      height: 100%;
+      display: flex;
+      will-change: transform;
+      transition: transform 260ms cubic-bezier(.2, .8, .2, 1);
+      transform: translate3d(0, 0, 0);
+    }
+
+    .app-track.is-dragging {
+      transition: none;
+    }
+
+    .screen {
+      flex: 0 0 25%;
+      width: 25%;
+      min-width: 0;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: max(1rem, env(safe-area-inset-top)) clamp(1rem, 4vw, 3.5rem) calc(4.75rem + env(safe-area-inset-bottom));
+      overflow: hidden;
+      background: var(--background);
+    }
+
+    .screen-header {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: clamp(1rem, 2.2vh, 1.75rem);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 4.8vw, 2.7rem);
+      line-height: 1.08;
+      letter-spacing: -.035em;
+    }
+
+    .clock-block {
+      flex: 0 0 auto;
+      text-align: right;
+    }
+
+    .clock {
+      display: block;
+      font-size: clamp(1.1rem, 3vw, 1.9rem);
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .03em;
+    }
+
+    .date {
+      max-width: 21rem;
+      margin: .25rem 0 0;
+      color: var(--muted);
+      font-size: clamp(.78rem, 1.8vw, 1rem);
+      line-height: 1.3;
+    }
+
+    .schedule-frame {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .schedule-image {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border: 1px solid var(--line);
+      border-radius: .85rem;
+      box-shadow: var(--shadow);
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .scroll-area {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: .1rem .2rem 1rem;
+      scrollbar-color: var(--surface-muted) transparent;
+      scrollbar-width: thin;
+    }
+
+    .scroll-area::-webkit-scrollbar {
+      width: .45rem;
+    }
+
+    .scroll-area::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: var(--surface-muted);
+    }
+
+    .section {
+      margin: 0 0 1.6rem;
+    }
+
+    .section-heading,
+    .day-heading {
+      margin: 0 0 .8rem;
+      padding: 0 0 .55rem;
+      border-bottom: 1px solid var(--line);
+      font-size: clamp(1rem, 2.5vw, 1.24rem);
+      font-weight: 780;
+      letter-spacing: .01em;
+    }
+
+    .card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 0 0 .7rem;
+      padding: .9rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: .8rem;
+      background: var(--surface);
+    }
+
+    .card--overdue {
+      border-left: .32rem solid var(--text);
+      background: #202021;
+    }
+
+    .card--completed {
+      opacity: .56;
+      border-left: .32rem solid var(--subtle);
+    }
+
+    .card--completed .item-title {
+      text-decoration: line-through;
+    }
+
+    .card-main {
+      min-width: 0;
+    }
+
+    .item-title {
+      overflow-wrap: anywhere;
+      font-size: clamp(1rem, 2.5vw, 1.18rem);
+      font-weight: 720;
+      line-height: 1.3;
+    }
+
+    .item-meta,
+    .item-priority,
+    .event-date {
+      margin-top: .3rem;
+      color: var(--muted);
+      font-size: clamp(.8rem, 2vw, .94rem);
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .item-priority {
+      flex: 0 0 auto;
+      min-width: 5.7rem;
+      margin-top: 0;
+      color: var(--text);
+      text-align: right;
+      font-weight: 650;
+    }
+
+    .item-action,
+    .retry-button,
+    .page-dot {
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: var(--surface-raised);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .item-action,
+    .retry-button {
+      flex: 0 0 auto;
+      padding: .5rem .68rem;
+      border-radius: .55rem;
+      font-size: .84rem;
+      font-weight: 700;
+    }
+
+    .item-action:hover,
+    .retry-button:hover,
+    .page-dot:hover {
+      border-color: var(--text);
+    }
+
+    .item-action:disabled {
+      cursor: wait;
+      opacity: .6;
+    }
+
+    .item-action:focus-visible,
+    .retry-button:focus-visible,
+    .page-dot:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 3px;
+    }
+
+    .message {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: .7rem;
+      margin: .35rem 0 1rem;
+      padding: .9rem 1rem;
+      border: 1px dashed var(--line);
+      border-radius: .75rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .message--error {
+      color: var(--text);
+      border-style: solid;
+      background: #1b1b1c;
+    }
+
+    .message--compact {
+      margin-top: 0;
+      padding: .65rem .75rem;
+      font-size: .9rem;
+    }
+
+    .empty-section {
+      margin: 0;
+      color: var(--subtle);
+      font-size: .93rem;
+    }
+
+    .day {
+      margin-bottom: 1.7rem;
+    }
+
+    .plan-card {
+      align-items: flex-start;
+    }
+
+    .plan-card--event {
+      border-left: .32rem solid var(--muted);
+    }
+
+    .plan-card--exam {
+      border-left-color: var(--text);
+    }
+
+    .plan-card--delivery {
+      border-left-color: #c0c0c1;
+    }
+
+    .plan-card--trip {
+      border-left-color: #9d9da0;
+    }
+
+    .plan-card--notice {
+      border-left-color: #77777b;
+    }
+
+    .bottom-navigation {
+      position: fixed;
+      z-index: 10;
+      bottom: max(.85rem, env(safe-area-inset-bottom));
+      left: 50%;
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+      padding: .5rem .65rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(16, 16, 16, .92);
+      box-shadow: var(--shadow);
+      transform: translateX(-50%);
+      backdrop-filter: blur(10px);
+    }
+
+    .page-dot {
+      width: .72rem;
+      height: .72rem;
+      padding: 0;
+      border-radius: 50%;
+      opacity: .45;
+    }
+
+    .page-dot[aria-current="page"] {
+      opacity: 1;
+      background: var(--text);
+      border-color: var(--text);
+      transform: scale(1.12);
+    }
+
+    @media (max-width: 600px) {
+      .screen-header {
+        align-items: flex-start;
+      }
+
+      .card {
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .item-priority {
+        min-width: 0;
+        width: 100%;
+        text-align: left;
+      }
+
+      .item-action {
+        width: 100%;
+      }
+    }
+
+    @media (max-height: 430px) and (orientation: landscape) {
+      .screen {
+        padding-top: max(.65rem, env(safe-area-inset-top));
+      }
+
+      .screen-header {
+        margin-bottom: .65rem;
+      }
+
+      .date {
+        display: none;
+      }
+
+      .schedule-image {
+        max-height: 100%;
+      }
+    }
+  </style>
 </head>
-
-
 <body>
-
-
-<div class="app" id="app">
-
-
-    <!-- =========================
-         PANTALLA 1
-    ========================= -->
-
-    <section class="pantalla" id="horario">
-
-        <div class="cabecera">
-
-            <div class="titulo">
-                🏫 HORARIO
-            </div>
-
-
-            <div style="text-align: right;">
-
-                <div class="hora" id="hora">
-                    00:00
-                </div>
-
-                <div class="fecha" id="fecha">
-                    20 de agosto de 2026
-                </div>
-
-            </div>
-
+  <main class="app-shell" id="appShell" aria-label="Mi Calendario Escolar">
+    <div class="app-track" id="appTrack">
+      <section class="screen" id="horario" aria-labelledby="horarioTitle">
+        <header class="screen-header">
+          <h1 id="horarioTitle">🏫 HORARIO</h1>
+          <div class="clock-block">
+            <time class="clock" id="hora" aria-label="Hora actual">00:00:00</time>
+            <p class="date" id="fecha">Cargando fecha…</p>
+          </div>
+        </header>
+        <div class="schedule-frame" id="scheduleFrame">
+          <img class="schedule-image" id="scheduleImage" src="./horario.png" alt="Horario escolar" draggable="false">
         </div>
+      </section>
 
-
-        <div class="horario-imagen">
-
-            <img
-                src="horario.png"
-                alt="Horario escolar"
-                draggable="false"
-            >
-
+      <section class="screen" id="tareas" aria-labelledby="tareasTitle">
+        <header class="screen-header">
+          <h1 id="tareasTitle">📋 TAREAS</h1>
+        </header>
+        <div class="scroll-area" id="taskList" tabindex="0" aria-live="polite">
+          <div class="message">Cargando tareas…</div>
         </div>
+      </section>
 
-    </section>
-
-
-
-    <!-- =========================
-         PANTALLA 2
-    ========================= -->
-
-    <section class="pantalla" id="tareas">
-
-        <div class="cabecera">
-
-            <div class="titulo">
-                📋 TAREAS
-            </div>
-
-            <div class="hora" id="hora2">
-                00:00
-            </div>
-
+      <section class="screen" id="calendario" aria-labelledby="calendarioTitle">
+        <header class="screen-header">
+          <h1 id="calendarioTitle">📅 CALENDARIO</h1>
+        </header>
+        <div class="scroll-area" id="eventList" tabindex="0" aria-live="polite">
+          <div class="message">Cargando eventos…</div>
         </div>
+      </section>
 
-
-        <div
-            class="lista-tareas"
-            id="listaTareas"
-        >
-
-            <div class="mensaje">
-                Cargando tareas...
-            </div>
-
+      <section class="screen" id="plan" aria-labelledby="planTitle">
+        <header class="screen-header">
+          <h1 id="planTitle">🎯 PLAN</h1>
+        </header>
+        <div class="scroll-area" id="planList" tabindex="0" aria-live="polite">
+          <div class="message">Generando el plan…</div>
         </div>
-
-    </section>
-
-
-
-    <!-- =========================
-         PANTALLA 3
-    ========================= -->
-
-    <section
-        class="pantalla"
-        id="calendario"
-    >
-
-        <div class="cabecera">
-
-            <div class="titulo">
-                📅 CALENDARIO
-            </div>
-
-            <div class="hora" id="hora3">
-                00:00
-            </div>
-
-        </div>
-
-
-        <div id="listaEventos">
-
-            <div class="mensaje">
-                Cargando eventos...
-            </div>
-
-        </div>
-
-    </section>
-
-     <!-- =========================
-         PANTALLA 4 - PLAN
-    ========================= -->
-
-    <section class="pantalla" id="plan">
-
-        <div class="cabecera">
-
-            <div class="titulo">
-                🎯 PLAN
-            </div>
-
-            <div class="hora" id="hora4">
-                00:00
-            </div>
-
-        </div>
-
-
-        <div id="listaPlan">
-
-            <div class="mensaje">
-                Generando plan...
-            </div>
-
-        </div>
-
-    </section>
-
-</div>
-
-
-
-<!-- =========================
-     INDICADORES
-========================= -->
-
-<div class="indicadores">
-
-    <div class="punto activo"></div>
-
-    <div class="punto"></div>
-
-    <div class="punto"></div>
-
-    <div class="punto"></div>
-
-</div>
-
-
-
-<script>
-
-
-/* =========================
-   API
-========================= */
-
-const API =
-    "https://calendario-escolar-api.elkitsunelegendario.workers.dev";
-
-
-
-/* =========================
-   HORA
-========================= */
-
-function actualizarHora() {
-
-    const ahora = new Date();
-
-    const horas =
-        String(
-            ahora.getHours()
-        ).padStart(2, "0");
-
-    const minutos =
-        String(
-            ahora.getMinutes()
-        ).padStart(2, "0");
-
-    const hora =
-        horas + ":" + minutos;
-
-
-    document.getElementById(
-        "hora"
-    ).textContent = hora;
-
-
-    document.getElementById(
-        "hora2"
-    ).textContent = hora;
-
-
-    document.getElementById(
-        "hora3"
-    ).textContent = hora;
-
-
-    const fecha =
-        ahora.toLocaleDateString(
-            "es-ES",
-            {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric"
-            }
-        );
-
-
-    document.getElementById(
-        "fecha"
-    ).textContent =
-        fecha.charAt(0).toUpperCase() +
-        fecha.slice(1);
-}
-
-
-actualizarHora();
-
-
-setInterval(
-    actualizarHora,
-    1000
-);
-
-
-
-/* =========================
-   TEXTO DE NOTION
-========================= */
-
-function obtenerTexto(propiedad) {
-
-    if (!propiedad) return "";
-
-
-    if (
-        propiedad.type === "title"
-    ) {
-
-        return propiedad.title
-            .map(x => x.plain_text)
-            .join("");
-
+      </section>
+    </div>
+  </main>
+
+  <nav class="bottom-navigation" aria-label="Pantallas">
+    <button class="page-dot" type="button" data-page="0" aria-label="Ir a Horario" aria-current="page"></button>
+    <button class="page-dot" type="button" data-page="1" aria-label="Ir a Tareas"></button>
+    <button class="page-dot" type="button" data-page="2" aria-label="Ir a Calendario"></button>
+    <button class="page-dot" type="button" data-page="3" aria-label="Ir a Plan"></button>
+  </nav>
+
+  <script>
+    "use strict";
+
+    const API_BASE_URL = "https://calendario-escolar-api.elkitsunelegendario.workers.dev";
+    const PAGE_COUNT = 4;
+    const DATA_REFRESH_INTERVAL = 5 * 60 * 1000;
+
+    const appShell = document.getElementById("appShell");
+    const appTrack = document.getElementById("appTrack");
+    const taskList = document.getElementById("taskList");
+    const eventList = document.getElementById("eventList");
+    const planList = document.getElementById("planList");
+    const clockElement = document.getElementById("hora");
+    const dateElement = document.getElementById("fecha");
+    const pageDots = Array.from(document.querySelectorAll(".page-dot"));
+
+    let currentPage = 0;
+    let refreshPromise = null;
+    let lastSuccessfulRefresh = 0;
+    let actionNotice = "";
+    let visibleDayKey = localDayKey(new Date());
+
+    const dataState = {
+      tasks: { status: "loading", items: [], error: "" },
+      events: { status: "loading", items: [], error: "" }
+    };
+
+    const dragState = {
+      active: false,
+      pointerId: null,
+      startX: 0,
+      startY: 0,
+      deltaX: 0,
+      direction: ""
+    };
+
+    let lastDragEndAt = 0;
+
+    function normalise(value) {
+      return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLocaleLowerCase("es-ES")
+        .trim()
+        .replace(/\s+/g, " ");
     }
 
-
-    if (
-        propiedad.type === "rich_text"
-    ) {
-
-        return propiedad.rich_text
-            .map(x => x.plain_text)
-            .join("");
-
+    function capitalise(value) {
+      return value ? value.charAt(0).toLocaleUpperCase("es-ES") + value.slice(1) : "";
     }
 
-
-    if (
-        propiedad.type === "select"
-    ) {
-
-        return propiedad.select?.name || "";
-
+    function localDayKey(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return year + "-" + month + "-" + day;
     }
 
-
-    if (
-        propiedad.type === "status"
-    ) {
-
-        return propiedad.status?.name || "";
-
+    function validDayKey(value) {
+      return /^\d{4}-\d{2}-\d{2}$/.test(value);
     }
 
-
-    if (
-        propiedad.type === "formula"
-    ) {
-
-        return propiedad.formula?.string || "";
-
+    function dateKeyFromNotion(value) {
+      const key = String(value || "").slice(0, 10);
+      return validDayKey(key) ? key : "";
     }
 
+    function dateFromDayKey(key) {
+      if (!validDayKey(key)) return null;
+      const parts = key.split("-").map(Number);
+      const date = new Date(parts[0], parts[1] - 1, parts[2]);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
 
-    return "";
-}
+    function dayDifference(fromKey, toKey) {
+      const from = dateFromDayKey(fromKey);
+      const to = dateFromDayKey(toKey);
+      if (!from || !to) return 0;
+      return Math.round((to.getTime() - from.getTime()) / 86400000);
+    }
 
+    function formatDay(value, options) {
+      const key = dateKeyFromNotion(value);
+      const date = dateFromDayKey(key);
+      if (!date) return value ? String(value) : "Sin fecha";
+      return date.toLocaleDateString("es-ES", options);
+    }
 
+    function formatDueDate(value) {
+      return formatDay(value, { day: "numeric", month: "long", year: "numeric" });
+    }
 
-/* =========================
-   FECHA
-========================= */
+    function findProperty(properties, names) {
+      if (!properties || typeof properties !== "object") return null;
+      const wanted = names.map(normalise);
+      for (const name of Object.keys(properties)) {
+        if (wanted.includes(normalise(name))) return properties[name];
+      }
+      return null;
+    }
 
-function obtenerFecha(propiedad) {
+    function findPropertyByType(properties, types) {
+      if (!properties || typeof properties !== "object") return null;
+      for (const property of Object.values(properties)) {
+        if (property && types.includes(property.type)) return property;
+      }
+      return null;
+    }
 
-    if (
-        !propiedad ||
-        propiedad.type !== "date"
-    ) {
+    function propertyText(property) {
+      if (!property || typeof property !== "object") return "";
 
+      const joinRichText = function (parts) {
+        return Array.isArray(parts)
+          ? parts.map(function (part) {
+              return part && (part.plain_text || part.text && part.text.content) || "";
+            }).join("")
+          : "";
+      };
+
+      if (property.type === "title" || Array.isArray(property.title)) return joinRichText(property.title);
+      if (property.type === "rich_text" || Array.isArray(property.rich_text)) return joinRichText(property.rich_text);
+      if (property.type === "select") return property.select && property.select.name || "";
+      if (property.type === "status") return property.status && property.status.name || "";
+      if (property.type === "multi_select") {
+        return Array.isArray(property.multi_select) ? property.multi_select.map(function (item) {
+          return item && item.name || "";
+        }).filter(Boolean).join(", ") : "";
+      }
+      if (property.type === "formula" && property.formula) {
+        if (property.formula.string !== null && property.formula.string !== undefined) return String(property.formula.string);
+        if (property.formula.number !== null && property.formula.number !== undefined) return String(property.formula.number);
+        if (property.formula.boolean !== null && property.formula.boolean !== undefined) return property.formula.boolean ? "Sí" : "No";
         return "";
+      }
+      if (property.type === "number") return property.number === null || property.number === undefined ? "" : String(property.number);
+      if (property.type === "checkbox") return property.checkbox ? "Sí" : "No";
+      if (property.type === "url") return property.url || "";
+      return "";
     }
 
-
-    return propiedad.date?.start || "";
-}
-
-
-
-/* =========================
-   FORMATEAR FECHA
-========================= */
-
-function formatearFecha(fecha) {
-
-    if (!fecha) return "";
-
-
-    const fechaObj =
-        new Date(fecha);
-
-
-    if (isNaN(fechaObj)) {
-
-        return fecha;
+    function propertyDate(property) {
+      if (!property || typeof property !== "object") return "";
+      if (property.type === "date" && property.date) return property.date.start || "";
+      if (property.type === "formula" && property.formula && property.formula.date) return property.formula.date.start || "";
+      return "";
     }
 
+    function extractTask(page) {
+      const properties = page && page.properties || {};
+      const titleProperty = findProperty(properties, ["Tarea", "Nombre", "Título", "Titulo", "Name"]) ||
+        findPropertyByType(properties, ["title"]);
+      const subjectProperty = findProperty(properties, ["Asignatura", "Materia"]);
+      const dueProperty = findProperty(properties, ["Fecha de entrega", "Entrega", "Fecha límite", "Fecha limite", "Fecha"]) ||
+        findPropertyByType(properties, ["date"]);
+      const priorityProperty = findProperty(properties, ["Prioridad", "Priority"]);
+      const statusProperty = findProperty(properties, ["Estado", "Status"]);
 
-    return fechaObj.toLocaleDateString(
-        "es-ES",
-        {
-            day: "numeric",
-            month: "long"
+      return {
+        id: String(page && page.id || ""),
+        title: propertyText(titleProperty) || "Tarea sin nombre",
+        subject: propertyText(subjectProperty),
+        dueDate: propertyDate(dueProperty),
+        priority: propertyText(priorityProperty),
+        status: propertyText(statusProperty),
+        lastEdited: String(page && page.last_edited_time || "")
+      };
+    }
+
+    function extractEvent(page) {
+      const properties = page && page.properties || {};
+      const titleProperty = findProperty(properties, ["Evento", "Nombre", "Título", "Titulo", "Name"]) ||
+        findPropertyByType(properties, ["title"]) ||
+        findPropertyByType(properties, ["rich_text"]);
+      const dateProperty = findProperty(properties, ["Fecha", "Fecha del evento", "Día", "Dia", "Date"]) ||
+        findPropertyByType(properties, ["date"]);
+      const typeProperty = findProperty(properties, ["Tipo", "Categoría", "Categoria", "Clase"]);
+      const subjectProperty = findProperty(properties, ["Asignatura", "Materia"]);
+      const notesProperty = findProperty(properties, ["Notas", "Descripción", "Descripcion", "Detalles", "Detalle"]);
+
+      let category = propertyText(typeProperty);
+      if (!category) {
+        for (const property of Object.values(properties)) {
+          const candidate = normalise(propertyText(property));
+          if (candidate.includes("examen") || candidate.includes("entrega") || candidate.includes("excursion") || candidate.includes("aviso")) {
+            category = propertyText(property);
+            break;
+          }
         }
-    );
-}
+      }
 
-
-
-/* =========================
-   FECHA SIN HORA
-========================= */
-
-function obtenerDia(fecha) {
-
-    if (!fecha) return null;
-
-
-    const partes =
-        fecha
-            .substring(0, 10)
-            .split("-");
-
-
-    if (partes.length !== 3) {
-
-        return null;
+      return {
+        id: String(page && page.id || ""),
+        title: propertyText(titleProperty) || "Evento sin nombre",
+        date: propertyDate(dateProperty),
+        category: category,
+        subject: propertyText(subjectProperty),
+        notes: propertyText(notesProperty)
+      };
     }
 
-
-    return new Date(
-        Number(partes[0]),
-        Number(partes[1]) - 1,
-        Number(partes[2])
-    );
-}
-
-
-
-/* =========================
-   HOY
-========================= */
-
-function obtenerHoy() {
-
-    const ahora =
-        new Date();
-
-
-    return new Date(
-        ahora.getFullYear(),
-        ahora.getMonth(),
-        ahora.getDate()
-    );
-}
-
-
-
-/* =========================
-   PRIORIDADES
-========================= */
-
-function nivelPrioridad(prioridad) {
-
-    const texto =
-        prioridad
-            .toLowerCase()
-            .trim();
-
-
-    if (
-        texto.includes("urgente") ||
-        texto.includes("🔴")
-    ) {
-
-        return 1;
+    function isCompleted(task) {
+      const status = normalise(task.status);
+      return status === "hecha" || status === "hecho" || status === "completada" || status === "completado";
     }
 
-
-    if (
-        texto.includes("normal") ||
-        texto.includes("🟡")
-    ) {
-
-        return 2;
+    function priorityRank(value) {
+      const priority = normalise(value);
+      if (priority.includes("urgente") || priority.includes("alta") || priority.includes("roja")) return 0;
+      if (priority.includes("normal") || priority.includes("media") || priority.includes("amarilla")) return 1;
+      if (priority.includes("baja") || priority.includes("verde")) return 2;
+      return 3;
     }
 
+    function taskGroups(tasks) {
+      const today = localDayKey(new Date());
+      const groups = { overdue: [], pending: [], done: [] };
 
-    if (
-        texto.includes("baja") ||
-        texto.includes("🟢")
-    ) {
-
-        return 3;
-    }
-
-
-    return 4;
-}
-
-
-
-/* =========================
-   TAREAS
-========================= */
-
-async function cargarTareas() {
-
-    const contenedor =
-        document.getElementById(
-            "listaTareas"
-        );
-
-
-    try {
-
-        const respuesta =
-            await fetch(
-                API + "/tasks"
-            );
-
-
-        if (!respuesta.ok) {
-
-            throw new Error(
-                "Error HTTP " +
-                respuesta.status
-            );
+      tasks.forEach(function (task) {
+        if (isCompleted(task)) {
+          groups.done.push(task);
+          return;
         }
 
-
-        const datos =
-            await respuesta.json();
-
-
-        contenedor.innerHTML = "";
-
-
-        if (
-            !datos.results ||
-            datos.results.length === 0
-        ) {
-
-            contenedor.innerHTML =
-                '<div class="mensaje">📚 No hay tareas</div>';
-
-            return;
+        const dueKey = dateKeyFromNotion(task.dueDate);
+        if (!dueKey) {
+          groups.pending.push(task);
+          return;
         }
 
-
-        const tareas =
-            datos.results.map(
-                pagina => {
-
-                    const propiedades =
-                        pagina.properties;
-
-
-                    const nombre =
-                        obtenerTexto(
-                            propiedades["Tarea"]
-                        ) ||
-                        "Tarea sin nombre";
-
-
-                    const asignatura =
-                        obtenerTexto(
-                            propiedades["Asignatura "]
-                        );
-
-
-                    const fecha =
-                        obtenerFecha(
-                            propiedades[
-                                "Fecha de entrega"
-                            ]
-                        );
-
-
-                    const prioridad =
-                        obtenerTexto(
-                            propiedades[
-                                "Prioridad"
-                            ]
-                        );
-
-
-                    const estado =
-                        obtenerTexto(
-                            propiedades[
-                                "Estado"
-                            ]
-                        );
-
-
-                    return {
-
-                        nombre,
-
-                        asignatura,
-
-                        fecha,
-
-                        prioridad,
-
-                        estado,
-
-                        pagina
-
-                    };
-
-                }
-            );
-
-
-        const pendientes = [];
-
-        const vencidas = [];
-
-        const hechas = [];
-
-
-        const hoy =
-            obtenerHoy();
-
-
-        tareas.forEach(
-            tarea => {
-
-                if (
-                    tarea.estado
-                        .toLowerCase()
-                        .trim() === "hecha"
-                ) {
-
-                    hechas.push(tarea);
-
-                    return;
-                }
-
-
-                if (!tarea.fecha) {
-
-                    pendientes.push(tarea);
-
-                    return;
-                }
-
-
-                const diaEntrega =
-                    obtenerDia(
-                        tarea.fecha
-                    );
-
-
-                if (!diaEntrega) {
-
-                    pendientes.push(tarea);
-
-                    return;
-                }
-
-
-                const diferencia =
-                    Math.floor(
-                        (
-                            hoy.getTime() -
-                            diaEntrega.getTime()
-                        ) /
-                        (
-                            1000 *
-                            60 *
-                            60 *
-                            24
-                        )
-                    );
-
-
-                if (
-                    diferencia >= 1 &&
-                    diferencia <= 3
-                ) {
-
-                    vencidas.push(tarea);
-
-                }
-
-
-                else if (
-                    diferencia > 3
-                ) {
-
-                    /* No mostrar */
-
-                }
-
-
-                else {
-
-                    pendientes.push(tarea);
-
-                }
-
-            }
-        );
-
-
-        pendientes.sort(
-            (a, b) => {
-
-                const prioridadA =
-                    nivelPrioridad(
-                        a.prioridad
-                    );
-
-
-                const prioridadB =
-                    nivelPrioridad(
-                        b.prioridad
-                    );
-
-
-                if (
-                    prioridadA !==
-                    prioridadB
-                ) {
-
-                    return
-                        prioridadA -
-                        prioridadB;
-                }
-
-
-                if (!a.fecha) return 1;
-
-                if (!b.fecha) return -1;
-
-
-                return (
-                    new Date(a.fecha) -
-                    new Date(b.fecha)
-                );
-            }
-        );
-
-
-        vencidas.sort(
-            (a, b) => {
-
-                const fechaA =
-                    obtenerDia(a.fecha);
-
-                const fechaB =
-                    obtenerDia(b.fecha);
-
-
-                return fechaA - fechaB;
-            }
-        );
-
-
-        hechas.sort(
-            (a, b) => {
-
-                const fechaA =
-                    a.pagina.last_edited_time
-                        ? new Date(
-                            a.pagina
-                                .last_edited_time
-                        )
-                        : new Date(0);
-
-
-                const fechaB =
-                    b.pagina.last_edited_time
-                        ? new Date(
-                            b.pagina
-                                .last_edited_time
-                        )
-                        : new Date(0);
-
-
-                return fechaB - fechaA;
-            }
-        );
-
-
-        crearSeccion(
-            contenedor,
-            "⚠️ VENCIDAS",
-            vencidas,
-            "vencida"
-        );
-
-
-        crearSeccion(
-            contenedor,
-            "📋 PENDIENTES",
-            pendientes,
-            "normal"
-        );
-
-
-        crearSeccion(
-            contenedor,
-            "✅ HECHAS",
-            hechas,
-            "hecha"
-        );
-
-
+        const lateDays = dayDifference(dueKey, today);
+        if (lateDays >= 1 && lateDays <= 3) {
+          groups.overdue.push(task);
+        } else if (lateDays <= 0) {
+          groups.pending.push(task);
+        }
+      });
+
+      const byPriorityThenDate = function (first, second) {
+        const priorityDifference = priorityRank(first.priority) - priorityRank(second.priority);
+        if (priorityDifference) return priorityDifference;
+        const firstDate = dateKeyFromNotion(first.dueDate) || "9999-12-31";
+        const secondDate = dateKeyFromNotion(second.dueDate) || "9999-12-31";
+        return firstDate.localeCompare(secondDate) || first.title.localeCompare(second.title, "es");
+      };
+
+      groups.overdue.sort(byPriorityThenDate);
+      groups.pending.sort(byPriorityThenDate);
+      groups.done.sort(function (first, second) {
+        const firstEdited = Date.parse(first.lastEdited);
+        const secondEdited = Date.parse(second.lastEdited);
+        const firstTime = Number.isNaN(firstEdited) ? 0 : firstEdited;
+        const secondTime = Number.isNaN(secondEdited) ? 0 : secondEdited;
+        return secondTime - firstTime || first.title.localeCompare(second.title, "es");
+      });
+      return groups;
     }
 
-    catch (error) {
-
-        console.error(error);
-
-
-        contenedor.innerHTML =
-            '<div class="error">⚠️ No se pudieron cargar las tareas</div>';
-    }
-}
-
-
-
-/* =========================
-   CREAR SECCIÓN
-========================= */
-
-function crearSeccion(
-    contenedor,
-    titulo,
-    tareas,
-    tipo
-) {
-
-    const seccion =
-        document.createElement(
-            "div"
-        );
-
-
-    seccion.className =
-        "seccion-tareas";
-
-
-    const encabezado =
-        document.createElement(
-            "div"
-        );
-
-
-    encabezado.className =
-        "titulo-seccion";
-
-
-    encabezado.textContent =
-        titulo;
-
-
-    seccion.appendChild(
-        encabezado
-    );
-
-
-    if (tareas.length === 0) {
-
-        const mensaje =
-            document.createElement(
-                "div"
-            );
-
-
-        mensaje.className =
-            "mensaje";
-
-
-        if (
-            tipo === "vencida"
-        ) {
-
-            mensaje.textContent =
-                "🎉 No hay tareas vencidas";
-        }
-
-        else if (
-            tipo === "normal"
-        ) {
-
-            mensaje.textContent =
-                "📚 No hay tareas pendientes";
-        }
-
-        else {
-
-            mensaje.textContent =
-                "✅ No hay tareas hechas";
-        }
-
-
-        seccion.appendChild(
-            mensaje
-        );
+    function appendMessage(container, text, kind, retry) {
+      const message = document.createElement("div");
+      message.className = "message" + (kind === "error" ? " message--error" : "") + (kind === "compact" ? " message--compact" : "");
+      const copy = document.createElement("span");
+      copy.textContent = text;
+      message.append(copy);
+      if (retry) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "retry-button";
+        button.textContent = "Reintentar";
+        button.addEventListener("click", refreshData);
+        message.append(button);
+      }
+      container.append(message);
     }
 
-
-    tareas.forEach(
-        tareaDatos => {
-
-            const tarea =
-                document.createElement(
-                    "div"
-                );
-
-
-            tarea.className =
-                "tarea";
-
-
-            if (
-                tipo === "vencida"
-            ) {
-
-                tarea.classList.add(
-                    "tarea-vencida"
-                );
-            }
-
-
-            if (
-                tipo === "hecha"
-            ) {
-
-                tarea.classList.add(
-                    "tarea-hecha"
-                );
-            }
-
-
-            tarea.innerHTML = `
-
-                <div>
-
-                    <div class="tarea-nombre">
-
-                        ${tareaDatos.nombre}
-
-                    </div>
-
-
-                    <div class="tarea-info">
-
-                        ${
-                            tareaDatos.asignatura ||
-                            "Sin asignatura"
-                        }
-
-                        ${
-                            tareaDatos.fecha
-                                ? " · " +
-                                  formatearFecha(
-                                      tareaDatos.fecha
-                                  )
-                                : ""
-                        }
-
-                    </div>
-
-                </div>
-
-
-                <div class="prioridad">
-
-                    ${
-                        tareaDatos.prioridad ||
-                        (
-                            tipo === "vencida"
-                                ? "⚠️ Vencida"
-                                : ""
-                        )
-                    }
-
-                </div>
-
-            `;
-
-
-            seccion.appendChild(
-                tarea
-            );
-
-        }
-    );
-
-
-    contenedor.appendChild(
-        seccion
-    );
-}
-
-
-
-/* =========================
-   EVENTOS
-========================= */
-
-async function cargarEventos() {
-
-    const contenedor =
-        document.getElementById(
-            "listaEventos"
-        );
-
-
-    try {
-
-        const respuesta =
-            await fetch(
-                API + "/events"
-            );
-
-
-        if (!respuesta.ok) {
-
-            throw new Error(
-                "Error HTTP " +
-                respuesta.status
-            );
-        }
-
-
-        const datos =
-            await respuesta.json();
-
-
-        contenedor.innerHTML = "";
-
-
-        if (
-            !datos.results ||
-            datos.results.length === 0
-        ) {
-
-            contenedor.innerHTML =
-                '<div class="mensaje">📅 No hay eventos</div>';
-
-            return;
-        }
-
-
-        const eventos =
-            datos.results.map(
-                pagina => {
-
-                    const propiedades =
-                        pagina.properties;
-
-
-                    let nombre = "";
-
-                    let fecha = "";
-
-
-                    for (
-                        const clave in propiedades
-                    ) {
-
-                        const propiedad =
-                            propiedades[clave];
-
-
-                        if (
-                            !nombre &&
-                            propiedad.type ===
-                            "title"
-                        ) {
-
-                            nombre =
-                                obtenerTexto(
-                                    propiedad
-                                );
-                        }
-
-
-                        if (
-                            !fecha &&
-                            propiedad.type ===
-                            "date"
-                        ) {
-
-                            fecha =
-                                obtenerFecha(
-                                    propiedad
-                                );
-                        }
-                    }
-
-
-                    return {
-
-                        nombre:
-                            nombre ||
-                            "Evento sin nombre",
-
-                        fecha
-
-                    };
-                }
-            );
-
-
-        eventos.sort(
-            (a, b) => {
-
-                if (!a.fecha) return 1;
-
-                if (!b.fecha) return -1;
-
-
-                return (
-                    new Date(a.fecha) -
-                    new Date(b.fecha)
-                );
-            }
-        );
-
-
-        eventos.forEach(
-            eventoDatos => {
-
-                const evento =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                evento.className =
-                    "evento";
-
-
-                evento.innerHTML = `
-
-                    <div class="evento-nombre">
-
-                        ${eventoDatos.nombre}
-
-                    </div>
-
-
-                    <div class="evento-fecha">
-
-                        ${
-                            eventoDatos.fecha
-                                ? formatearFecha(
-                                    eventoDatos.fecha
-                                  )
-                                : "Sin fecha"
-                        }
-
-                    </div>
-
-                `;
-
-
-                contenedor.appendChild(
-                    evento
-                );
-            }
-        );
-
+    function makeTextElement(tagName, className, text) {
+      const element = document.createElement(tagName);
+      if (className) element.className = className;
+      element.textContent = text;
+      return element;
     }
 
-    catch (error) {
-
-        console.error(error);
-
-
-        contenedor.innerHTML =
-            '<div class="error">⚠️ No se pudieron cargar los eventos</div>';
+    function taskMeta(task) {
+      const subject = task.subject || "Sin asignatura";
+      const due = dateKeyFromNotion(task.dueDate) ? "Entrega: " + formatDueDate(task.dueDate) : "Sin fecha de entrega";
+      return subject + " · " + due;
     }
-}
 
+    function makeTaskCard(task) {
+      const completed = isCompleted(task);
+      const dueKey = dateKeyFromNotion(task.dueDate);
+      const overdue = !completed && dueKey && dayDifference(dueKey, localDayKey(new Date())) > 0;
+      const card = document.createElement("article");
+      card.className = "card" + (completed ? " card--completed" : "") + (overdue ? " card--overdue" : "");
 
+      const main = document.createElement("div");
+      main.className = "card-main";
+      main.append(
+        makeTextElement("div", "item-title", (completed ? "☑ " : "☐ ") + task.title),
+        makeTextElement("div", "item-meta", taskMeta(task))
+      );
+      card.append(main);
 
-/* =========================
-   CARGAR DATOS
-========================= */
+      const priority = makeTextElement("div", "item-priority", task.priority || "Sin prioridad");
+      card.append(priority);
 
-cargarTareas();
-
-cargarEventos();
-
-
-
-/* =========================
-   ACTUALIZAR CADA 30 SEGUNDOS
-========================= */
-
-setInterval(
-    () => {
-
-        cargarTareas();
-
-        cargarEventos();
-
-    },
-    30 * 1000
-);
-
-
-
-/* =========================
-   ACTUALIZAR AL VOLVER
-========================= */
-
-document.addEventListener(
-    "visibilitychange",
-    () => {
-
-        if (!document.hidden) {
-
-            cargarTareas();
-
-            cargarEventos();
-
-        }
+      if (!completed && task.id) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "item-action";
+        button.textContent = task.completing ? "Guardando…" : "Marcar hecha";
+        button.disabled = Boolean(task.completing);
+        button.addEventListener("click", function () {
+          completeTask(task);
+        });
+        card.append(button);
+      }
+      return card;
     }
-);
 
+    function appendTaskSection(container, title, items) {
+      const section = document.createElement("section");
+      section.className = "section";
+      section.append(makeTextElement("h2", "section-heading", title));
+      if (!items.length) {
+        section.append(makeTextElement("p", "empty-section", "No hay tareas en esta sección."));
+      } else {
+        items.forEach(function (task) {
+          section.append(makeTaskCard(task));
+        });
+      }
+      container.append(section);
+    }
 
+    function renderTasks() {
+      taskList.replaceChildren();
+      if (dataState.tasks.status === "loading" && !dataState.tasks.items.length) {
+        appendMessage(taskList, "Cargando tareas…");
+        return;
+      }
+      if (dataState.tasks.error && !dataState.tasks.items.length) {
+        appendMessage(taskList, "No se pudieron cargar las tareas. " + dataState.tasks.error, "error", true);
+        return;
+      }
+      if (dataState.tasks.error) appendMessage(taskList, "Mostrando las últimas tareas disponibles. " + dataState.tasks.error, "compact", true);
+      if (actionNotice) appendMessage(taskList, actionNotice, actionNotice.startsWith("No se") ? "error" : "compact");
 
-/* =====================================================
-   NAVEGACIÓN
-   ===================================================== */
+      const groups = taskGroups(dataState.tasks.items);
+      appendTaskSection(taskList, "⚠️ VENCIDAS", groups.overdue);
+      appendTaskSection(taskList, "📋 PENDIENTES", groups.pending);
+      appendTaskSection(taskList, "✅ HECHAS", groups.done);
+    }
 
-const app =
-    document.getElementById("app");
+    function eventTimeValue(event) {
+      const parsed = Date.parse(event.date);
+      return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+    }
 
+    function renderEvents() {
+      eventList.replaceChildren();
+      if (dataState.events.status === "loading" && !dataState.events.items.length) {
+        appendMessage(eventList, "Cargando eventos…");
+        return;
+      }
+      if (dataState.events.error && !dataState.events.items.length) {
+        appendMessage(eventList, "No se pudieron cargar los eventos. " + dataState.events.error, "error", true);
+        return;
+      }
+      if (dataState.events.error) appendMessage(eventList, "Mostrando los últimos eventos disponibles. " + dataState.events.error, "compact", true);
 
-const puntos =
-    document.querySelectorAll(".punto");
+      const events = dataState.events.items.slice().sort(function (first, second) {
+        return eventTimeValue(first) - eventTimeValue(second) || first.title.localeCompare(second.title, "es");
+      });
+      if (!events.length) {
+        appendMessage(eventList, "📅 No hay eventos");
+        return;
+      }
 
-
-let paginaActual = 0;
-
-let inicioX = 0;
-
-let inicioY = 0;
-
-let gestoHorizontal = false;
-
-let moviendo = false;
-
-
-const MINIMO_DESLIZAMIENTO = 60;
-
-const DURACION_ANIMACION = 400;
-
-
-
-/* =========================
-   PUNTOS
-========================= */
-
-function actualizarPuntos() {
-
-    puntos.forEach(
-        (punto, indice) => {
-
-            punto.classList.toggle(
-                "activo",
-                indice === paginaActual
-            );
-
-        }
-    );
-}
-
-
-
-/* =========================
-   IR A PÁGINA
-========================= */
-
-function irAPagina(numero) {
-
-    numero =
-        Math.max(
-            0,
-            Math.min(
-                3,
-                numero
-            )
+      events.forEach(function (event) {
+        const card = document.createElement("article");
+        card.className = "card";
+        const main = document.createElement("div");
+        main.className = "card-main";
+        main.append(
+          makeTextElement("div", "item-title", "📅 " + event.title),
+          makeTextElement("div", "event-date", formatDueDate(event.date))
         );
+        card.append(main);
+        eventList.append(card);
+      });
+    }
 
+    function eventKind(event) {
+      const category = normalise(event.category);
+      if (category.includes("examen") || category.includes("prueba")) return "exam";
+      if (category.includes("entrega") || category.includes("deadline")) return "delivery";
+      if (category.includes("excursion") || category.includes("salida")) return "trip";
+      return "notice";
+    }
 
-    paginaActual = numero;
+    function eventLabel(kind) {
+      if (kind === "exam") return "📝 EXAMEN";
+      if (kind === "delivery") return "📦 ENTREGA";
+      if (kind === "trip") return "🚌 EXCURSIÓN";
+      return "📌 AVISO";
+    }
 
-    actualizarPuntos();
+    function makePlanTaskCard(task) {
+      const completed = isCompleted(task);
+      const card = document.createElement("article");
+      card.className = "card plan-card" + (completed ? " card--completed" : "");
+      const main = document.createElement("div");
+      main.className = "card-main";
+      const details = task.subject || "Sin asignatura";
+      const priority = task.priority ? " · " + task.priority : "";
+      main.append(
+        makeTextElement("div", "item-title", (completed ? "☑ " : "☐ ") + task.title),
+        makeTextElement("div", "item-meta", details + priority)
+      );
+      card.append(main);
+      if (!completed && task.id) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "item-action";
+        button.textContent = task.completing ? "Guardando…" : "Marcar hecha";
+        button.disabled = Boolean(task.completing);
+        button.addEventListener("click", function () {
+          completeTask(task);
+        });
+        card.append(button);
+      }
+      return card;
+    }
 
+    function makePlanEventCard(event) {
+      const kind = eventKind(event);
+      const card = document.createElement("article");
+      card.className = "card plan-card plan-card--event plan-card--" + kind;
+      const main = document.createElement("div");
+      main.className = "card-main";
+      const heading = eventLabel(kind) + (event.subject ? " · " + event.subject : "");
+      const description = event.notes || event.title;
+      main.append(
+        makeTextElement("div", "item-title", heading),
+        makeTextElement("div", "item-meta", description)
+      );
+      card.append(main);
+      return card;
+    }
 
-    moviendo = true;
+    function nextSevenDays() {
+      const first = dateFromDayKey(localDayKey(new Date()));
+      const days = [];
+      for (let index = 0; index < 7; index += 1) {
+        const day = new Date(first);
+        day.setDate(first.getDate() + index);
+        days.push(day);
+      }
+      return days;
+    }
 
+    function dayHeading(day, index) {
+      if (index === 0) return "📍 HOY";
+      return capitalise(day.toLocaleDateString("es-ES", {
+        weekday: "long",
+        day: "numeric",
+        month: "long"
+      }));
+    }
 
-    /*
-     * Movemos el scroll REAL.
-     * No usamos transform.
-     */
+    function renderPlan() {
+      planList.replaceChildren();
+      const noTaskData = dataState.tasks.status === "loading" && !dataState.tasks.items.length;
+      const noEventData = dataState.events.status === "loading" && !dataState.events.items.length;
+      if (noTaskData && noEventData) {
+        appendMessage(planList, "Generando el plan…");
+        return;
+      }
+      if (dataState.tasks.error && dataState.events.error && !dataState.tasks.items.length && !dataState.events.items.length) {
+        appendMessage(planList, "No se pudo generar el plan. Comprueba la conexión e inténtalo de nuevo.", "error", true);
+        return;
+      }
+      if (dataState.tasks.error || dataState.events.error) {
+        appendMessage(planList, "El plan puede estar incompleto porque no se pudieron actualizar todos los datos.", "compact", true);
+      }
+      if (actionNotice) appendMessage(planList, actionNotice, actionNotice.startsWith("No se") ? "error" : "compact");
 
-    app.scrollTo({
+      const tasksByDay = new Map();
+      dataState.tasks.items.forEach(function (task) {
+        const key = dateKeyFromNotion(task.dueDate);
+        if (!key) return;
+        if (!tasksByDay.has(key)) tasksByDay.set(key, []);
+        tasksByDay.get(key).push(task);
+      });
+      tasksByDay.forEach(function (items) {
+        items.sort(function (first, second) {
+          return priorityRank(first.priority) - priorityRank(second.priority) || first.title.localeCompare(second.title, "es");
+        });
+      });
 
-        left:
-            numero *
-            window.innerWidth,
+      const eventsByDay = new Map();
+      dataState.events.items.forEach(function (event) {
+        const key = dateKeyFromNotion(event.date);
+        if (!key) return;
+        if (!eventsByDay.has(key)) eventsByDay.set(key, []);
+        eventsByDay.get(key).push(event);
+      });
+      eventsByDay.forEach(function (items) {
+        items.sort(function (first, second) {
+          return eventTimeValue(first) - eventTimeValue(second) || first.title.localeCompare(second.title, "es");
+        });
+      });
 
-        behavior: "smooth"
+      nextSevenDays().forEach(function (day, index) {
+        const key = localDayKey(day);
+        const section = document.createElement("section");
+        section.className = "day";
+        section.append(makeTextElement("h2", "day-heading", dayHeading(day, index)));
+        const tasks = tasksByDay.get(key) || [];
+        const events = eventsByDay.get(key) || [];
 
+        tasks.forEach(function (task) {
+          section.append(makePlanTaskCard(task));
+        });
+        events.forEach(function (event) {
+          section.append(makePlanEventCard(event));
+        });
+        if (!tasks.length && !events.length) {
+          section.append(makeTextElement("p", "empty-section", "🎉 Nada programado"));
+        }
+        planList.append(section);
+      });
+    }
+
+    function renderAll() {
+      renderTasks();
+      renderEvents();
+      renderPlan();
+    }
+
+    async function fetchCollection(path, label) {
+      try {
+        const response = await fetch(API_BASE_URL + path, {
+          method: "GET",
+          headers: { "Accept": "application/json" },
+          cache: "no-store"
+        });
+        let payload;
+        try {
+          payload = await response.json();
+        } catch (error) {
+          throw new Error("La API devolvió una respuesta no válida.");
+        }
+        if (!response.ok) {
+          throw new Error("Error HTTP " + response.status + ".");
+        }
+        const pages = Array.isArray(payload) ? payload : payload && payload.results;
+        if (!Array.isArray(pages)) {
+          throw new Error("La respuesta de " + label + " no contiene una lista.");
+        }
+        return { ok: true, pages: pages };
+      } catch (error) {
+        const message = error && error.message ? error.message : "Error de red.";
+        return { ok: false, error: message };
+      }
+    }
+
+    async function refreshData() {
+      if (refreshPromise) return refreshPromise;
+      if (!dataState.tasks.items.length) dataState.tasks.status = "loading";
+      if (!dataState.events.items.length) dataState.events.status = "loading";
+      renderAll();
+
+      refreshPromise = Promise.all([
+        fetchCollection("/tasks", "tareas"),
+        fetchCollection("/events", "eventos")
+      ]).then(function (results) {
+        const taskResult = results[0];
+        const eventResult = results[1];
+
+        if (taskResult.ok) {
+          dataState.tasks = {
+            status: "ready",
+            items: taskResult.pages.map(extractTask),
+            error: ""
+          };
+        } else {
+          dataState.tasks.status = dataState.tasks.items.length ? "ready" : "error";
+          dataState.tasks.error = taskResult.error;
+        }
+
+        if (eventResult.ok) {
+          dataState.events = {
+            status: "ready",
+            items: eventResult.pages.map(extractEvent),
+            error: ""
+          };
+        } else {
+          dataState.events.status = dataState.events.items.length ? "ready" : "error";
+          dataState.events.error = eventResult.error;
+        }
+        lastSuccessfulRefresh = Date.now();
+      }).finally(function () {
+        refreshPromise = null;
+        renderAll();
+      });
+      return refreshPromise;
+    }
+
+    async function completeTask(task) {
+      if (!task.id || task.completing) return;
+      task.completing = true;
+      actionNotice = "";
+      renderTasks();
+      renderPlan();
+      try {
+        const response = await fetch(API_BASE_URL + "/complete-task", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ pageId: task.id }),
+          cache: "no-store"
+        });
+        if (!response.ok) throw new Error("Error HTTP " + response.status + ".");
+        task.status = "Hecha";
+        task.lastEdited = new Date().toISOString();
+        actionNotice = "Tarea marcada como hecha.";
+        window.setTimeout(refreshData, 400);
+      } catch (error) {
+        actionNotice = "No se pudo marcar la tarea como hecha. " + (error && error.message ? error.message : "Error de red.");
+      } finally {
+        task.completing = false;
+        renderTasks();
+        renderPlan();
+      }
+    }
+
+    function updateClock() {
+      const now = new Date();
+      clockElement.textContent = now.toLocaleTimeString("es-ES", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      });
+      dateElement.textContent = capitalise(now.toLocaleDateString("es-ES", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      }));
+
+      const today = localDayKey(now);
+      if (today !== visibleDayKey) {
+        visibleDayKey = today;
+        renderTasks();
+        renderPlan();
+        refreshData();
+      }
+    }
+
+    function goToPage(page) {
+      currentPage = Math.max(0, Math.min(PAGE_COUNT - 1, Number(page) || 0));
+      appTrack.classList.remove("is-dragging");
+      appTrack.style.transform = "translate3d(" + (-currentPage * 100) + "%, 0, 0)";
+      pageDots.forEach(function (dot, index) {
+        if (index === currentPage) {
+          dot.setAttribute("aria-current", "page");
+        } else {
+          dot.removeAttribute("aria-current");
+        }
+      });
+    }
+
+    function releaseDrag() {
+      if (!dragState.active) return;
+      const wasHorizontal = dragState.direction === "horizontal";
+      const distance = dragState.deltaX;
+      const threshold = Math.max(56, appShell.clientWidth * .18);
+      dragState.active = false;
+      dragState.pointerId = null;
+      appTrack.classList.remove("is-dragging");
+
+      if (wasHorizontal && Math.abs(distance) >= threshold) {
+        goToPage(currentPage + (distance < 0 ? 1 : -1));
+        lastDragEndAt = performance.now();
+      } else {
+        goToPage(currentPage);
+      }
+      dragState.direction = "";
+    }
+
+    appShell.addEventListener("pointerdown", function (event) {
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      if (event.target.closest("button, a, input, textarea, select, label")) return;
+      dragState.active = true;
+      dragState.pointerId = event.pointerId;
+      dragState.startX = event.clientX;
+      dragState.startY = event.clientY;
+      dragState.deltaX = 0;
+      dragState.direction = "";
+      try {
+        appShell.setPointerCapture(event.pointerId);
+      } catch (error) {
+        // Algunos navegadores antiguos no implementan la captura de puntero.
+      }
     });
 
+    appShell.addEventListener("pointermove", function (event) {
+      if (!dragState.active || event.pointerId !== dragState.pointerId) return;
+      const deltaX = event.clientX - dragState.startX;
+      const deltaY = event.clientY - dragState.startY;
+      if (!dragState.direction && Math.max(Math.abs(deltaX), Math.abs(deltaY)) > 10) {
+        dragState.direction = Math.abs(deltaX) > Math.abs(deltaY) * 1.2 ? "horizontal" : "vertical";
+      }
+      if (dragState.direction !== "horizontal") return;
 
-    setTimeout(
-        () => {
+      event.preventDefault();
+      dragState.deltaX = deltaX;
+      let offset = deltaX;
+      if ((currentPage === 0 && offset > 0) || (currentPage === PAGE_COUNT - 1 && offset < 0)) {
+        offset *= .28;
+      }
+      const width = appShell.clientWidth || 1;
+      const translate = -currentPage * width + offset;
+      appTrack.classList.add("is-dragging");
+      appTrack.style.transform = "translate3d(" + translate + "px, 0, 0)";
+    }, { passive: false });
 
-            moviendo = false;
+    appShell.addEventListener("pointerup", function (event) {
+      if (dragState.active && event.pointerId === dragState.pointerId) releaseDrag();
+    });
 
-            /*
-             * Corregimos cualquier pequeño
-             * error de posición.
-             */
+    appShell.addEventListener("pointercancel", function (event) {
+      if (dragState.active && event.pointerId === dragState.pointerId) releaseDrag();
+    });
 
-            app.scrollLeft =
-                paginaActual *
-                window.innerWidth;
+    appShell.addEventListener("lostpointercapture", function () {
+      if (dragState.active) releaseDrag();
+    });
 
-        },
-        DURACION_ANIMACION
-    );
-}
+    document.addEventListener("click", function (event) {
+      if (performance.now() - lastDragEndAt < 350) event.preventDefault();
+    }, true);
 
+    pageDots.forEach(function (dot) {
+      dot.addEventListener("click", function () {
+        goToPage(Number(dot.dataset.page));
+      });
+    });
 
+    document.addEventListener("keydown", function (event) {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.target.closest("input, textarea, select")) return;
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        goToPage(currentPage + 1);
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        goToPage(currentPage - 1);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        goToPage(0);
+      } else if (event.key === "End") {
+        event.preventDefault();
+        goToPage(PAGE_COUNT - 1);
+      }
+    });
 
-/* =========================
-   CAMBIAR PÁGINA
-========================= */
+    window.addEventListener("resize", function () {
+      goToPage(currentPage);
+    });
 
-function cambiarPagina(direccion) {
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible" && Date.now() - lastSuccessfulRefresh > 60000) {
+        refreshData();
+      }
+    });
 
-    if (moviendo) {
-        return;
-    }
+    const scheduleImage = document.getElementById("scheduleImage");
+    scheduleImage.addEventListener("error", function () {
+      scheduleImage.remove();
+      const frame = document.getElementById("scheduleFrame");
+      appendMessage(frame, "No se encontró horario.png. Colócalo junto a index.html.", "error");
+    });
 
-
-    const nuevaPagina =
-        paginaActual +
-        direccion;
-
-
-    if (
-        nuevaPagina < 0 ||
-        nuevaPagina > 3
-    ) {
-
-        return;
-    }
-
-
-    irAPagina(
-        nuevaPagina
-    );
-}
-
-
-
-/* =========================
-   TOUCH START
-========================= */
-
-app.addEventListener(
-    "touchstart",
-    evento => {
-
-        if (moviendo) {
-            return;
+    function registerServiceWorker() {
+      if (!("serviceWorker" in navigator)) return;
+      const hadController = Boolean(navigator.serviceWorker.controller);
+      let reloadedAfterUpdate = false;
+      navigator.serviceWorker.addEventListener("controllerchange", function () {
+        if (hadController && !reloadedAfterUpdate) {
+          reloadedAfterUpdate = true;
+          window.location.reload();
         }
-
-
-        /*
-         * Solo nos interesa el primer dedo.
-         */
-
-        if (
-            evento.touches.length !== 1
-        ) {
-
-            return;
-        }
-
-
-        const toque =
-            evento.touches[0];
-
-
-        inicioX =
-            toque.clientX;
-
-
-        inicioY =
-            toque.clientY;
-
-
-        gestoHorizontal = false;
-
-    },
-    {
-        passive: true
-    }
-);
-
-
-
-/* =========================
-   TOUCH MOVE
-========================= */
-
-app.addEventListener(
-    "touchmove",
-    evento => {
-
-        if (moviendo) {
-            return;
-        }
-
-
-        if (
-            evento.touches.length !== 1
-        ) {
-
-            return;
-        }
-
-
-        const toque =
-            evento.touches[0];
-
-
-        const diferenciaX =
-            toque.clientX -
-            inicioX;
-
-
-        const diferenciaY =
-            toque.clientY -
-            inicioY;
-
-
-        /*
-         * Cuando sabemos que el gesto es
-         * horizontal, evitamos que el navegador
-         * intente hacer un scroll horizontal
-         * por su cuenta.
-         */
-
-        if (
-            Math.abs(diferenciaX) >
-            Math.abs(diferenciaY)
-        ) {
-
-            gestoHorizontal = true;
-
-            /*
-             * NO usamos preventDefault aquí
-             * porque el listener es passive.
-             *
-             * touch-action: pan-y se encarga
-             * de impedir el movimiento horizontal.
-             */
-        }
-
-    },
-    {
-        passive: true
-    }
-);
-
-
-
-/* =========================
-   TOUCH END
-========================= */
-
-app.addEventListener(
-    "touchend",
-    evento => {
-
-        if (moviendo) {
-            return;
-        }
-
-
-        if (!gestoHorizontal) {
-            return;
-        }
-
-
-        const toque =
-            evento.changedTouches[0];
-
-
-        const diferenciaX =
-            toque.clientX -
-            inicioX;
-
-
-        const diferenciaY =
-            toque.clientY -
-            inicioY;
-
-
-        /*
-         * Si finalmente fue vertical,
-         * no hacemos nada.
-         */
-
-        if (
-            Math.abs(diferenciaY) >
-            Math.abs(diferenciaX)
-        ) {
-
-            return;
-        }
-
-
-        /*
-         * Swipe demasiado pequeño.
-         */
-
-        if (
-            Math.abs(diferenciaX) <
-            MINIMO_DESLIZAMIENTO
-        ) {
-
-            return;
-        }
-
-
-        /*
-         * IZQUIERDA
-         */
-
-        if (
-            diferenciaX < 0
-        ) {
-
-            cambiarPagina(1);
-
-        }
-
-
-        /*
-         * DERECHA
-         */
-
-        else {
-
-            cambiarPagina(-1);
-
-        }
-
-
-        gestoHorizontal = false;
-
-    },
-    {
-        passive: true
-    }
-);
-
-
-
-/* =========================
-   CANCELAR TOUCH
-========================= */
-
-app.addEventListener(
-    "touchcancel",
-    () => {
-
-        gestoHorizontal = false;
-
-    },
-    {
-        passive: true
-    }
-);
-
-
-
-/* =====================================================
-   RATÓN
-   ===================================================== */
-
-let ratonActivo = false;
-
-let ratonInicioX = 0;
-
-
-
-app.addEventListener(
-    "mousedown",
-    evento => {
-
-        if (moviendo) {
-            return;
-        }
-
-
-        ratonActivo = true;
-
-        ratonInicioX =
-            evento.clientX;
-
-    }
-);
-
-
-
-app.addEventListener(
-    "mouseup",
-    evento => {
-
-        if (!ratonActivo) {
-            return;
-        }
-
-
-        ratonActivo = false;
-
-
-        if (moviendo) {
-            return;
-        }
-
-
-        const diferencia =
-            evento.clientX -
-            ratonInicioX;
-
-
-        if (
-            Math.abs(diferencia) <
-            MINIMO_DESLIZAMIENTO
-        ) {
-
-            return;
-        }
-
-
-        if (
-            diferencia < 0
-        ) {
-
-            cambiarPagina(1);
-
-        }
-
-        else {
-
-            cambiarPagina(-1);
-
-        }
-
-    }
-);
-
-
-
-/* =========================
-   RATÓN CANCELADO
-========================= */
-
-app.addEventListener(
-    "mouseleave",
-    () => {
-
-        ratonActivo = false;
-
-    }
-);
-
-
-
-/* =========================
-   EVITAR ARRASTRAR IMÁGENES
-========================= */
-
-document
-    .querySelectorAll("img")
-    .forEach(
-        img => {
-
-            img.addEventListener(
-                "dragstart",
-                evento => {
-
-                    evento.preventDefault();
-
-                }
-            );
-
-        }
-    );
-
-
-
-/* =========================
-   REDIMENSIONAR
-========================= */
-
-window.addEventListener(
-    "resize",
-    () => {
-
-        /*
-         * Esperamos un instante para que
-         * el navegador termine de actualizar
-         * el viewport.
-         */
-
-        requestAnimationFrame(
-            () => {
-
-                app.scrollTo({
-
-                    left:
-                        paginaActual *
-                        window.innerWidth,
-
-                    behavior: "auto"
-
-                });
-
-            }
-        );
-
-    }
-);
-
-/* =====================================================
-   PLAN ESCOLAR
-   ===================================================== */
-
-async function cargarPlan() {
-
-    const contenedor =
-        document.getElementById("listaPlan");
-
-
-    if (!contenedor) {
-        return;
-    }
-
-
-    contenedor.innerHTML =
-        '<div class="mensaje">Generando plan...</div>';
-
-
-    try {
-
-        /* =========================
-           OBTENER TAREAS
-        ========================= */
-
-        const respuestaTareas =
-            await fetch(API + "/tasks");
-
-
-        if (!respuestaTareas.ok) {
-
-            throw new Error(
-                "Error al cargar tareas: HTTP " +
-                respuestaTareas.status
-            );
-
-        }
-
-
-        const datosTareas =
-            await respuestaTareas.json();
-
-
-        /* =========================
-           OBTENER EVENTOS
-        ========================= */
-
-        const respuestaEventos =
-            await fetch(API + "/events");
-
-
-        if (!respuestaEventos.ok) {
-
-            throw new Error(
-                "Error al cargar eventos: HTTP " +
-                respuestaEventos.status
-            );
-
-        }
-
-
-        const datosEventos =
-            await respuestaEventos.json();
-
-
-        /* =========================
-           CONVERTIR TAREAS
-        ========================= */
-
-        const tareas =
-            (datosTareas.results || [])
-                .map(pagina => {
-
-                    const propiedades =
-                        pagina.properties;
-
-
-                    return {
-
-                        id:
-                            pagina.id,
-
-                        nombre:
-                            obtenerTexto(
-                                propiedades["Tarea"]
-                            ) ||
-                            "Tarea sin nombre",
-
-                        asignatura:
-                            obtenerTexto(
-                                propiedades["Asignatura "]
-                            ),
-
-                        fecha:
-                            obtenerFecha(
-                                propiedades[
-                                    "Fecha de entrega"
-                                ]
-                            ),
-
-                        prioridad:
-                            obtenerTexto(
-                                propiedades[
-                                    "Prioridad"
-                                ]
-                            ),
-
-                        estado:
-                            obtenerTexto(
-                                propiedades[
-                                    "Estado"
-                                ]
-                            ),
-
-                        pagina
-
-                    };
-
-                });
-
-
-        /* =========================
-           CONVERTIR EVENTOS
-        ========================= */
-
-        const eventos =
-            (datosEventos.results || [])
-                .map(pagina => {
-
-                    const propiedades =
-                        pagina.properties;
-
-
-                    let nombre = "";
-
-                    let fecha = "";
-
-                    let tipo = "";
-
-                    let asignatura = "";
-
-                    let notas = "";
-
-
-                    for (
-                        const clave in propiedades
-                    ) {
-
-                        const propiedad =
-                            propiedades[clave];
-
-
-                        /*
-                         * NOMBRE
-                         */
-
-                        if (
-                            !nombre &&
-                            propiedad.type ===
-                            "title"
-                        ) {
-
-                            nombre =
-                                obtenerTexto(
-                                    propiedad
-                                );
-
-                        }
-
-
-                        /*
-                         * FECHA
-                         */
-
-                        if (
-                            !fecha &&
-                            propiedad.type ===
-                            "date"
-                        ) {
-
-                            fecha =
-                                obtenerFecha(
-                                    propiedad
-                                );
-
-                        }
-
-
-                        /*
-                         * TIPO
-                         */
-
-                        if (
-                            !tipo &&
-                            (
-                                propiedad.type ===
-                                "select" ||
-                                propiedad.type ===
-                                "status"
-                            )
-                        ) {
-
-                            const valor =
-                                obtenerTexto(
-                                    propiedad
-                                );
-
-
-                            if (
-                                valor.toLowerCase() ===
-                                "examen" ||
-
-                                valor.toLowerCase() ===
-                                "entrega" ||
-
-                                valor.toLowerCase() ===
-                                "excursion" ||
-
-                                valor.toLowerCase() ===
-                                "otro"
-                            ) {
-
-                                tipo = valor;
-
-                            }
-
-                        }
-
-
-                        /*
-                         * ASIGNATURA
-                         */
-
-                        if (
-                            !asignatura &&
-                            (
-                                propiedad.type ===
-                                "select" ||
-
-                                propiedad.type ===
-                                "rich_text" ||
-
-                                propiedad.type ===
-                                "status"
-                            )
-                        ) {
-
-                            const valor =
-                                obtenerTexto(
-                                    propiedad
-                                );
-
-
-                            /*
-                             * Evitamos confundir
-                             * el tipo con asignatura.
-                             */
-
-                            if (
-                                valor !== tipo
-                            ) {
-
-                                asignatura =
-                                    valor;
-
-                            }
-
-                        }
-
-
-                        /*
-                         * NOTAS
-                         */
-
-                        if (
-                            !notas &&
-                            propiedad.type ===
-                            "rich_text"
-                        ) {
-
-                            notas =
-                                obtenerTexto(
-                                    propiedad
-                                );
-
-                        }
-
-                    }
-
-
-                    return {
-
-                        id:
-                            pagina.id,
-
-                        nombre:
-                            nombre ||
-                            "Evento",
-
-                        fecha,
-
-                        tipo,
-
-                        asignatura,
-
-                        notas,
-
-                        pagina
-
-                    };
-
-                });
-
-
-        /* =========================
-           FECHA ACTUAL
-        ========================= */
-
-        const hoy =
-            obtenerHoy();
-
-
-        /*
-         * Mostraremos los próximos
-         * 7 días.
-         */
-
-        const dias = [];
-
-
-        for (
-            let i = 0;
-            i < 7;
-            i++
-        ) {
-
-            const fecha =
-                new Date(hoy);
-
-
-            fecha.setDate(
-                hoy.getDate() + i
-            );
-
-
-            dias.push(fecha);
-
-        }
-
-
-        /* =========================
-           LIMPIAR PLAN
-        ========================= */
-
-        contenedor.innerHTML = "";
-
-
-        /* =========================
-           CREAR CADA DÍA
-        ========================= */
-
-        dias.forEach(
-            fechaDia => {
-
-                const año =
-                    fechaDia.getFullYear();
-
-                const mes =
-                    String(
-                        fechaDia.getMonth() + 1
-                    ).padStart(2, "0");
-
-                const dia =
-                    String(
-                        fechaDia.getDate()
-                    ).padStart(2, "0");
-
-
-                const fechaTexto =
-                    `${año}-${mes}-${dia}`;
-
-
-                const diaPlan =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                diaPlan.className =
-                    "dia-plan";
-
-
-                /* =========================
-                   TÍTULO DEL DÍA
-                ========================= */
-
-                const titulo =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                titulo.className =
-                    "titulo-dia";
-
-
-                let textoDia;
-
-
-                if (fechaTexto ===
-                    `${hoy.getFullYear()}-${String(
-                        hoy.getMonth() + 1
-                    ).padStart(2, "0")}-${String(
-                        hoy.getDate()
-                    ).padStart(2, "0")}`
-                ) {
-
-                    textoDia =
-                        "📍 HOY";
-
-                }
-
-                else {
-
-                    textoDia =
-                        fechaDia.toLocaleDateString(
-                            "es-ES",
-                            {
-                                weekday:
-                                    "long",
-
-                                day:
-                                    "numeric",
-
-                                month:
-                                    "long"
-                            }
-                        );
-
-
-                    textoDia =
-                        textoDia
-                            .charAt(0)
-                            .toUpperCase() +
-                        textoDia.slice(1);
-
-                }
-
-
-                titulo.textContent =
-                    textoDia;
-
-
-                diaPlan.appendChild(
-                    titulo
-                );
-
-
-                /* =========================
-                   ELEMENTOS DEL DÍA
-                ========================= */
-
-                let cantidad =
-                    0;
-
-
-                /*
-                 * TAREAS
-                 */
-
-                tareas.forEach(
-                    tarea => {
-
-                        if (!tarea.fecha) {
-                            return;
-                        }
-
-
-                        if (
-                            tarea.fecha
-                                .substring(0, 10)
-                            !==
-                            fechaTexto
-                        ) {
-
-                            return;
-
-                        }
-
-
-                        /*
-                         * Las hechas siguen
-                         * apareciendo para saber
-                         * que ya están completadas.
-                         */
-
-                        const elemento =
-                            document.createElement(
-                                "div"
-                            );
-
-
-                        elemento.className =
-                            "item-plan tarea-plan";
-
-
-                        if (
-                            tarea.estado
-                                .toLowerCase()
-                                .trim() ===
-                            "hecha"
-                        ) {
-
-                            elemento.classList.add(
-                                "plan-hecha"
-                            );
-
-                        }
-
-
-                        elemento.innerHTML = `
-
-                            <div>
-
-                                <div class="plan-nombre">
-
-                                    <span class="casilla">
-
-                                        ${
-                                            tarea.estado
-                                                .toLowerCase()
-                                                .trim() ===
-                                            "hecha"
-                                                ? "☑️"
-                                                : "☐"
-                                        }
-
-                                    </span>
-
-                                    ${tarea.nombre}
-
-                                </div>
-
-
-                                <div class="plan-info">
-
-                                    ${
-                                        tarea.asignatura ||
-                                        "Sin asignatura"
-                                    }
-
-                                    ${
-                                        tarea.prioridad
-                                            ? " · " +
-                                              tarea.prioridad
-                                            : ""
-                                    }
-
-                                </div>
-
-                            </div>
-
-                        `;
-
-
-                        diaPlan.appendChild(
-                            elemento
-                        );
-
-
-                        cantidad++;
-
-                    }
-                );
-
-
-                /*
-                 * EVENTOS
-                 */
-
-                eventos.forEach(
-                    evento => {
-
-                        if (!evento.fecha) {
-                            return;
-                        }
-
-
-                        if (
-                            evento.fecha
-                                .substring(0, 10)
-                            !==
-                            fechaTexto
-                        ) {
-
-                            return;
-
-                        }
-
-
-                        const elemento =
-                            document.createElement(
-                                "div"
-                            );
-
-
-                        elemento.className =
-                            "item-plan plan-aviso";
-
-
-                        const tipo =
-                            evento.tipo
-                                .toLowerCase()
-                                .trim();
-
-
-                        /*
-                         * EXAMEN
-                         */
-
-                        if (
-                            tipo === "examen"
-                        ) {
-
-                            elemento.classList.add(
-                                "plan-examen"
-                            );
-
-
-                            elemento.innerHTML = `
-
-                                <div class="plan-nombre">
-
-                                    📝 EXAMEN
-                                    ${
-                                        evento.asignatura
-                                            ? " · " +
-                                              evento.asignatura
-                                            : ""
-                                    }
-
-                                </div>
-
-                                <div class="plan-info">
-
-                                    ${
-                                        evento.notas ||
-                                        evento.nombre
-                                    }
-
-                                </div>
-
-                            `;
-
-                        }
-
-
-                        /*
-                         * ENTREGA
-                         */
-
-                        else if (
-                            tipo === "entrega"
-                        ) {
-
-                            elemento.classList.add(
-                                "plan-entrega"
-                            );
-
-
-                            elemento.innerHTML = `
-
-                                <div class="plan-nombre">
-
-                                    📦 ENTREGA
-                                    ${
-                                        evento.asignatura
-                                            ? " · " +
-                                              evento.asignatura
-                                            : ""
-                                    }
-
-                                </div>
-
-                                <div class="plan-info">
-
-                                    Completar:
-                                    ${
-                                        evento.notas ||
-                                        evento.nombre
-                                    }
-
-                                </div>
-
-                            `;
-
-                        }
-
-
-                        /*
-                         * EXCURSIÓN
-                         */
-
-                        else if (
-                            tipo === "excursion"
-                        ) {
-
-                            elemento.innerHTML = `
-
-                                <div class="plan-nombre">
-
-                                    🚌 EXCURSIÓN
-
-                                </div>
-
-                                <div class="plan-info">
-
-                                    ${
-                                        evento.nombre
-                                    }
-
-                                    ${
-                                        evento.notas
-                                            ? " · " +
-                                              evento.notas
-                                            : ""
-                                    }
-
-                                </div>
-
-                            `;
-
-                        }
-
-
-                        /*
-                         * OTRO
-                         */
-
-                        else {
-
-                            elemento.innerHTML = `
-
-                                <div class="plan-nombre">
-
-                                    📌 AVISO
-
-                                </div>
-
-                                <div class="plan-info">
-
-                                    ${
-                                        evento.nombre
-                                    }
-
-                                    ${
-                                        evento.notas
-                                            ? " · " +
-                                              evento.notas
-                                            : ""
-                                    }
-
-                                </div>
-
-                            `;
-
-                        }
-
-
-                        diaPlan.appendChild(
-                            elemento
-                        );
-
-
-                        cantidad++;
-
-                    }
-                );
-
-
-                /*
-                 * SI NO HAY NADA
-                 */
-
-                if (
-                    cantidad === 0
-                ) {
-
-                    const vacio =
-                        document.createElement(
-                            "div"
-                        );
-
-
-                    vacio.className =
-                        "mensaje";
-
-
-                    vacio.textContent =
-                        "🎉 Nada programado";
-
-
-                    diaPlan.appendChild(
-                        vacio
-                    );
-
-                }
-
-
-                contenedor.appendChild(
-                    diaPlan
-                );
-
-            }
-        );
-
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Error cargando PLAN:",
-            error
-        );
-
-
-        contenedor.innerHTML = `
-
-            <div class="error">
-
-                ⚠️ No se pudo generar el plan.
-
-            </div>
-
-        `;
-
-    }
-
-}
-
-
-/* =========================
-   HORA DEL PLAN
-========================= */
-
-function actualizarHoraPlan() {
-
-    const elemento =
-        document.getElementById(
-            "hora4"
-        );
-
-
-    if (!elemento) {
-        return;
-    }
-
-
-    const ahora =
-        new Date();
-
-
-    const horas =
-        String(
-            ahora.getHours()
-        ).padStart(2, "0");
-
-
-    const minutos =
-        String(
-            ahora.getMinutes()
-        ).padStart(2, "0");
-
-
-    elemento.textContent =
-        horas + ":" + minutos;
-
-}
-
-
-/* =========================
-   CARGAR PLAN
-========================= */
-
-cargarPlan();
-
-actualizarHoraPlan();
-
-
-setInterval(
-    actualizarHoraPlan,
-    1000
-);
-    
-    
-/* =========================
-   SERVICE WORKER
-========================= */
-
-if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
+      });
+      window.addEventListener("load", function () {
         navigator.serviceWorker.register("./sw.js")
-            .then(() => {
-                console.log("Service Worker registrado");
-            })
-            .catch(error => {
-                console.error("Error Service Worker:", error);
-            });
-    });
-}
+          .then(function (registration) {
+            return registration.update();
+          })
+          .catch(function (error) {
+            console.warn("No se pudo registrar el modo sin conexión.", error);
+          });
+      });
+    }
 
-
-</script>
-
+    goToPage(0);
+    updateClock();
+    window.setInterval(updateClock, 1000);
+    window.setInterval(refreshData, DATA_REFRESH_INTERVAL);
+    refreshData();
+    registerServiceWorker();
+  </script>
 </body>
 </html>
