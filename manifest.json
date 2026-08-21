@@ -1,10 +1,12 @@
 {
   "name": "Mi Calendario Escolar",
   "short_name": "Calendario",
+  "description": "Horario, tareas, calendario y plan escolar.",
+  "lang": "es-ES",
   "start_url": "./",
   "scope": "./",
-  "display": "fullscreen",
-  "background_color": "#111827",
-  "theme_color": "#111827",
-  "orientation": "landscape"
+  "display": "standalone",
+  "background_color": "#101010",
+  "theme_color": "#101010",
+  "orientation": "any"
 }
