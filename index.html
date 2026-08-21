@@ -2264,7 +2264,901 @@ window.addEventListener(
     }
 );
 
+/* =====================================================
+   PLAN ESCOLAR
+   ===================================================== */
 
+async function cargarPlan() {
+
+    const contenedor =
+        document.getElementById("listaPlan");
+
+
+    if (!contenedor) {
+        return;
+    }
+
+
+    contenedor.innerHTML =
+        '<div class="mensaje">Generando plan...</div>';
+
+
+    try {
+
+        /* =========================
+           OBTENER TAREAS
+        ========================= */
+
+        const respuestaTareas =
+            await fetch(API + "/tasks");
+
+
+        if (!respuestaTareas.ok) {
+
+            throw new Error(
+                "Error al cargar tareas: HTTP " +
+                respuestaTareas.status
+            );
+
+        }
+
+
+        const datosTareas =
+            await respuestaTareas.json();
+
+
+        /* =========================
+           OBTENER EVENTOS
+        ========================= */
+
+        const respuestaEventos =
+            await fetch(API + "/events");
+
+
+        if (!respuestaEventos.ok) {
+
+            throw new Error(
+                "Error al cargar eventos: HTTP " +
+                respuestaEventos.status
+            );
+
+        }
+
+
+        const datosEventos =
+            await respuestaEventos.json();
+
+
+        /* =========================
+           CONVERTIR TAREAS
+        ========================= */
+
+        const tareas =
+            (datosTareas.results || [])
+                .map(pagina => {
+
+                    const propiedades =
+                        pagina.properties;
+
+
+                    return {
+
+                        id:
+                            pagina.id,
+
+                        nombre:
+                            obtenerTexto(
+                                propiedades["Tarea"]
+                            ) ||
+                            "Tarea sin nombre",
+
+                        asignatura:
+                            obtenerTexto(
+                                propiedades["Asignatura "]
+                            ),
+
+                        fecha:
+                            obtenerFecha(
+                                propiedades[
+                                    "Fecha de entrega"
+                                ]
+                            ),
+
+                        prioridad:
+                            obtenerTexto(
+                                propiedades[
+                                    "Prioridad"
+                                ]
+                            ),
+
+                        estado:
+                            obtenerTexto(
+                                propiedades[
+                                    "Estado"
+                                ]
+                            ),
+
+                        pagina
+
+                    };
+
+                });
+
+
+        /* =========================
+           CONVERTIR EVENTOS
+        ========================= */
+
+        const eventos =
+            (datosEventos.results || [])
+                .map(pagina => {
+
+                    const propiedades =
+                        pagina.properties;
+
+
+                    let nombre = "";
+
+                    let fecha = "";
+
+                    let tipo = "";
+
+                    let asignatura = "";
+
+                    let notas = "";
+
+
+                    for (
+                        const clave in propiedades
+                    ) {
+
+                        const propiedad =
+                            propiedades[clave];
+
+
+                        /*
+                         * NOMBRE
+                         */
+
+                        if (
+                            !nombre &&
+                            propiedad.type ===
+                            "title"
+                        ) {
+
+                            nombre =
+                                obtenerTexto(
+                                    propiedad
+                                );
+
+                        }
+
+
+                        /*
+                         * FECHA
+                         */
+
+                        if (
+                            !fecha &&
+                            propiedad.type ===
+                            "date"
+                        ) {
+
+                            fecha =
+                                obtenerFecha(
+                                    propiedad
+                                );
+
+                        }
+
+
+                        /*
+                         * TIPO
+                         */
+
+                        if (
+                            !tipo &&
+                            (
+                                propiedad.type ===
+                                "select" ||
+                                propiedad.type ===
+                                "status"
+                            )
+                        ) {
+
+                            const valor =
+                                obtenerTexto(
+                                    propiedad
+                                );
+
+
+                            if (
+                                valor.toLowerCase() ===
+                                "examen" ||
+
+                                valor.toLowerCase() ===
+                                "entrega" ||
+
+                                valor.toLowerCase() ===
+                                "excursion" ||
+
+                                valor.toLowerCase() ===
+                                "otro"
+                            ) {
+
+                                tipo = valor;
+
+                            }
+
+                        }
+
+
+                        /*
+                         * ASIGNATURA
+                         */
+
+                        if (
+                            !asignatura &&
+                            (
+                                propiedad.type ===
+                                "select" ||
+
+                                propiedad.type ===
+                                "rich_text" ||
+
+                                propiedad.type ===
+                                "status"
+                            )
+                        ) {
+
+                            const valor =
+                                obtenerTexto(
+                                    propiedad
+                                );
+
+
+                            /*
+                             * Evitamos confundir
+                             * el tipo con asignatura.
+                             */
+
+                            if (
+                                valor !== tipo
+                            ) {
+
+                                asignatura =
+                                    valor;
+
+                            }
+
+                        }
+
+
+                        /*
+                         * NOTAS
+                         */
+
+                        if (
+                            !notas &&
+                            propiedad.type ===
+                            "rich_text"
+                        ) {
+
+                            notas =
+                                obtenerTexto(
+                                    propiedad
+                                );
+
+                        }
+
+                    }
+
+
+                    return {
+
+                        id:
+                            pagina.id,
+
+                        nombre:
+                            nombre ||
+                            "Evento",
+
+                        fecha,
+
+                        tipo,
+
+                        asignatura,
+
+                        notas,
+
+                        pagina
+
+                    };
+
+                });
+
+
+        /* =========================
+           FECHA ACTUAL
+        ========================= */
+
+        const hoy =
+            obtenerHoy();
+
+
+        /*
+         * Mostraremos los próximos
+         * 7 días.
+         */
+
+        const dias = [];
+
+
+        for (
+            let i = 0;
+            i < 7;
+            i++
+        ) {
+
+            const fecha =
+                new Date(hoy);
+
+
+            fecha.setDate(
+                hoy.getDate() + i
+            );
+
+
+            dias.push(fecha);
+
+        }
+
+
+        /* =========================
+           LIMPIAR PLAN
+        ========================= */
+
+        contenedor.innerHTML = "";
+
+
+        /* =========================
+           CREAR CADA DÍA
+        ========================= */
+
+        dias.forEach(
+            fechaDia => {
+
+                const año =
+                    fechaDia.getFullYear();
+
+                const mes =
+                    String(
+                        fechaDia.getMonth() + 1
+                    ).padStart(2, "0");
+
+                const dia =
+                    String(
+                        fechaDia.getDate()
+                    ).padStart(2, "0");
+
+
+                const fechaTexto =
+                    `${año}-${mes}-${dia}`;
+
+
+                const diaPlan =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                diaPlan.className =
+                    "dia-plan";
+
+
+                /* =========================
+                   TÍTULO DEL DÍA
+                ========================= */
+
+                const titulo =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                titulo.className =
+                    "titulo-dia";
+
+
+                let textoDia;
+
+
+                if (fechaTexto ===
+                    `${hoy.getFullYear()}-${String(
+                        hoy.getMonth() + 1
+                    ).padStart(2, "0")}-${String(
+                        hoy.getDate()
+                    ).padStart(2, "0")}`
+                ) {
+
+                    textoDia =
+                        "📍 HOY";
+
+                }
+
+                else {
+
+                    textoDia =
+                        fechaDia.toLocaleDateString(
+                            "es-ES",
+                            {
+                                weekday:
+                                    "long",
+
+                                day:
+                                    "numeric",
+
+                                month:
+                                    "long"
+                            }
+                        );
+
+
+                    textoDia =
+                        textoDia
+                            .charAt(0)
+                            .toUpperCase() +
+                        textoDia.slice(1);
+
+                }
+
+
+                titulo.textContent =
+                    textoDia;
+
+
+                diaPlan.appendChild(
+                    titulo
+                );
+
+
+                /* =========================
+                   ELEMENTOS DEL DÍA
+                ========================= */
+
+                let cantidad =
+                    0;
+
+
+                /*
+                 * TAREAS
+                 */
+
+                tareas.forEach(
+                    tarea => {
+
+                        if (!tarea.fecha) {
+                            return;
+                        }
+
+
+                        if (
+                            tarea.fecha
+                                .substring(0, 10)
+                            !==
+                            fechaTexto
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        /*
+                         * Las hechas siguen
+                         * apareciendo para saber
+                         * que ya están completadas.
+                         */
+
+                        const elemento =
+                            document.createElement(
+                                "div"
+                            );
+
+
+                        elemento.className =
+                            "item-plan tarea-plan";
+
+
+                        if (
+                            tarea.estado
+                                .toLowerCase()
+                                .trim() ===
+                            "hecha"
+                        ) {
+
+                            elemento.classList.add(
+                                "plan-hecha"
+                            );
+
+                        }
+
+
+                        elemento.innerHTML = `
+
+                            <div>
+
+                                <div class="plan-nombre">
+
+                                    <span class="casilla">
+
+                                        ${
+                                            tarea.estado
+                                                .toLowerCase()
+                                                .trim() ===
+                                            "hecha"
+                                                ? "☑️"
+                                                : "☐"
+                                        }
+
+                                    </span>
+
+                                    ${tarea.nombre}
+
+                                </div>
+
+
+                                <div class="plan-info">
+
+                                    ${
+                                        tarea.asignatura ||
+                                        "Sin asignatura"
+                                    }
+
+                                    ${
+                                        tarea.prioridad
+                                            ? " · " +
+                                              tarea.prioridad
+                                            : ""
+                                    }
+
+                                </div>
+
+                            </div>
+
+                        `;
+
+
+                        diaPlan.appendChild(
+                            elemento
+                        );
+
+
+                        cantidad++;
+
+                    }
+                );
+
+
+                /*
+                 * EVENTOS
+                 */
+
+                eventos.forEach(
+                    evento => {
+
+                        if (!evento.fecha) {
+                            return;
+                        }
+
+
+                        if (
+                            evento.fecha
+                                .substring(0, 10)
+                            !==
+                            fechaTexto
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        const elemento =
+                            document.createElement(
+                                "div"
+                            );
+
+
+                        elemento.className =
+                            "item-plan plan-aviso";
+
+
+                        const tipo =
+                            evento.tipo
+                                .toLowerCase()
+                                .trim();
+
+
+                        /*
+                         * EXAMEN
+                         */
+
+                        if (
+                            tipo === "examen"
+                        ) {
+
+                            elemento.classList.add(
+                                "plan-examen"
+                            );
+
+
+                            elemento.innerHTML = `
+
+                                <div class="plan-nombre">
+
+                                    📝 EXAMEN
+                                    ${
+                                        evento.asignatura
+                                            ? " · " +
+                                              evento.asignatura
+                                            : ""
+                                    }
+
+                                </div>
+
+                                <div class="plan-info">
+
+                                    ${
+                                        evento.notas ||
+                                        evento.nombre
+                                    }
+
+                                </div>
+
+                            `;
+
+                        }
+
+
+                        /*
+                         * ENTREGA
+                         */
+
+                        else if (
+                            tipo === "entrega"
+                        ) {
+
+                            elemento.classList.add(
+                                "plan-entrega"
+                            );
+
+
+                            elemento.innerHTML = `
+
+                                <div class="plan-nombre">
+
+                                    📦 ENTREGA
+                                    ${
+                                        evento.asignatura
+                                            ? " · " +
+                                              evento.asignatura
+                                            : ""
+                                    }
+
+                                </div>
+
+                                <div class="plan-info">
+
+                                    Completar:
+                                    ${
+                                        evento.notas ||
+                                        evento.nombre
+                                    }
+
+                                </div>
+
+                            `;
+
+                        }
+
+
+                        /*
+                         * EXCURSIÓN
+                         */
+
+                        else if (
+                            tipo === "excursion"
+                        ) {
+
+                            elemento.innerHTML = `
+
+                                <div class="plan-nombre">
+
+                                    🚌 EXCURSIÓN
+
+                                </div>
+
+                                <div class="plan-info">
+
+                                    ${
+                                        evento.nombre
+                                    }
+
+                                    ${
+                                        evento.notas
+                                            ? " · " +
+                                              evento.notas
+                                            : ""
+                                    }
+
+                                </div>
+
+                            `;
+
+                        }
+
+
+                        /*
+                         * OTRO
+                         */
+
+                        else {
+
+                            elemento.innerHTML = `
+
+                                <div class="plan-nombre">
+
+                                    📌 AVISO
+
+                                </div>
+
+                                <div class="plan-info">
+
+                                    ${
+                                        evento.nombre
+                                    }
+
+                                    ${
+                                        evento.notas
+                                            ? " · " +
+                                              evento.notas
+                                            : ""
+                                    }
+
+                                </div>
+
+                            `;
+
+                        }
+
+
+                        diaPlan.appendChild(
+                            elemento
+                        );
+
+
+                        cantidad++;
+
+                    }
+                );
+
+
+                /*
+                 * SI NO HAY NADA
+                 */
+
+                if (
+                    cantidad === 0
+                ) {
+
+                    const vacio =
+                        document.createElement(
+                            "div"
+                        );
+
+
+                    vacio.className =
+                        "mensaje";
+
+
+                    vacio.textContent =
+                        "🎉 Nada programado";
+
+
+                    diaPlan.appendChild(
+                        vacio
+                    );
+
+                }
+
+
+                contenedor.appendChild(
+                    diaPlan
+                );
+
+            }
+        );
+
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Error cargando PLAN:",
+            error
+        );
+
+
+        contenedor.innerHTML = `
+
+            <div class="error">
+
+                ⚠️ No se pudo generar el plan.
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+
+/* =========================
+   HORA DEL PLAN
+========================= */
+
+function actualizarHoraPlan() {
+
+    const elemento =
+        document.getElementById(
+            "hora4"
+        );
+
+
+    if (!elemento) {
+        return;
+    }
+
+
+    const ahora =
+        new Date();
+
+
+    const horas =
+        String(
+            ahora.getHours()
+        ).padStart(2, "0");
+
+
+    const minutos =
+        String(
+            ahora.getMinutes()
+        ).padStart(2, "0");
+
+
+    elemento.textContent =
+        horas + ":" + minutos;
+
+}
+
+
+/* =========================
+   CARGAR PLAN
+========================= */
+
+cargarPlan();
+
+actualizarHoraPlan();
+
+
+setInterval(
+    actualizarHoraPlan,
+    1000
+);
+    
 /* =========================
    INICIO
 ========================= */
