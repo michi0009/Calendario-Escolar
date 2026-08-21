@@ -1193,9 +1193,41 @@
       return target instanceof Element && Boolean(target.closest("button, a, input, textarea, select, label"));
     }
 
+    // En pantallas táctiles usamos Touch Events incluso si el navegador también
+    // expone Pointer Events. Es la ruta más consistente en PWA de iPhone y Android.
+    appShell.addEventListener("touchstart", function (event) {
+      if (startsOnControl(event.target) || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      beginDrag("touch-" + touch.identifier, touch.clientX, touch.clientY);
+    }, { passive: true });
+
+    function touchWithId(touches, inputId) {
+      const identifier = Number(String(inputId).replace("touch-", ""));
+      return Array.from(touches).find(function (touch) {
+        return touch.identifier === identifier;
+      });
+    }
+
+    window.addEventListener("touchmove", function (event) {
+      if (!dragState.active || !String(dragState.pointerId).startsWith("touch-")) return;
+      const touch = touchWithId(event.touches, dragState.pointerId);
+      if (touch && updateDrag(dragState.pointerId, touch.clientX, touch.clientY)) event.preventDefault();
+    }, { passive: false });
+
+    window.addEventListener("touchend", function (event) {
+      if (!dragState.active || !String(dragState.pointerId).startsWith("touch-")) return;
+      const touch = touchWithId(event.changedTouches, dragState.pointerId);
+      if (touch) releaseDrag(dragState.pointerId);
+    });
+
+    window.addEventListener("touchcancel", function () {
+      if (dragState.active && String(dragState.pointerId).startsWith("touch-")) releaseDrag();
+    });
+
     if (window.PointerEvent) {
       appShell.addEventListener("pointerdown", function (event) {
-        if (!event.isPrimary || event.pointerType === "mouse" && event.button !== 0) return;
+        // Los toques se gestionan arriba; Pointer Events queda para ratón/lápiz.
+        if (!event.isPrimary || event.pointerType === "touch" || event.pointerType === "mouse" && event.button !== 0) return;
         if (startsOnControl(event.target)) return;
         beginDrag(event.pointerId, event.clientX, event.clientY);
       });
@@ -1212,28 +1244,7 @@
         releaseDrag(event.pointerId);
       });
     } else {
-      // Respaldo para navegadores táctiles que todavía no implementan Pointer Events.
-      appShell.addEventListener("touchstart", function (event) {
-        if (startsOnControl(event.target) || event.touches.length !== 1) return;
-        const touch = event.touches[0];
-        beginDrag("touch-" + touch.identifier, touch.clientX, touch.clientY);
-      }, { passive: true });
-
-      window.addEventListener("touchmove", function (event) {
-        const touch = event.touches[0];
-        if (!touch) return;
-        if (updateDrag("touch-" + touch.identifier, touch.clientX, touch.clientY)) event.preventDefault();
-      }, { passive: false });
-
-      window.addEventListener("touchend", function (event) {
-        const touch = event.changedTouches[0];
-        if (touch) releaseDrag("touch-" + touch.identifier);
-      });
-
-      window.addEventListener("touchcancel", function () {
-        releaseDrag();
-      });
-
+      // Respaldo de ratón para navegadores de escritorio antiguos.
       appShell.addEventListener("mousedown", function (event) {
         if (event.button !== 0 || startsOnControl(event.target)) return;
         beginDrag("mouse", event.clientX, event.clientY);
