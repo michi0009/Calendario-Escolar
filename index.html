@@ -1125,7 +1125,50 @@
       });
     }
 
-    function releaseDrag() {
+    function beginDrag(inputId, clientX, clientY) {
+      dragState.active = true;
+      dragState.pointerId = inputId;
+      dragState.startX = clientX;
+      dragState.startY = clientY;
+      dragState.deltaX = 0;
+      dragState.direction = "";
+    }
+
+    function updateDrag(inputId, clientX, clientY) {
+      if (!dragState.active || inputId !== dragState.pointerId) return false;
+
+      const deltaX = clientX - dragState.startX;
+      const deltaY = clientY - dragState.startY;
+      const horizontalDistance = Math.abs(deltaX);
+      const verticalDistance = Math.abs(deltaY);
+
+      if (!dragState.direction && Math.max(horizontalDistance, verticalDistance) > 12) {
+        if (horizontalDistance > verticalDistance * 1.35) {
+          dragState.direction = "horizontal";
+        } else if (verticalDistance > horizontalDistance * 1.15) {
+          // El gesto es de scroll. Dejamos que la lista lo gestione normalmente.
+          dragState.active = false;
+          dragState.pointerId = null;
+          return false;
+        }
+      }
+
+      if (dragState.direction !== "horizontal") return false;
+
+      dragState.deltaX = deltaX;
+      let offset = deltaX;
+      if ((currentPage === 0 && offset > 0) || (currentPage === PAGE_COUNT - 1 && offset < 0)) {
+        offset *= .28;
+      }
+      const width = appShell.clientWidth || 1;
+      const translate = -currentPage * width + offset;
+      appTrack.classList.add("is-dragging");
+      appTrack.style.transform = "translate3d(" + translate + "px, 0, 0)";
+      return true;
+    }
+
+    function releaseDrag(inputId) {
+      if (inputId !== undefined && inputId !== dragState.pointerId) return;
       if (!dragState.active) return;
       const wasHorizontal = dragState.direction === "horizontal";
       const distance = dragState.deltaX;
@@ -1143,54 +1186,64 @@
       dragState.direction = "";
     }
 
-    appShell.addEventListener("pointerdown", function (event) {
-      if (event.pointerType === "mouse" && event.button !== 0) return;
-      if (event.target.closest("button, a, input, textarea, select, label")) return;
-      dragState.active = true;
-      dragState.pointerId = event.pointerId;
-      dragState.startX = event.clientX;
-      dragState.startY = event.clientY;
-      dragState.deltaX = 0;
-      dragState.direction = "";
-      try {
-        appShell.setPointerCapture(event.pointerId);
-      } catch (error) {
-        // Algunos navegadores antiguos no implementan la captura de puntero.
-      }
-    });
+    function startsOnControl(target) {
+      return target instanceof Element && Boolean(target.closest("button, a, input, textarea, select, label"));
+    }
 
-    appShell.addEventListener("pointermove", function (event) {
-      if (!dragState.active || event.pointerId !== dragState.pointerId) return;
-      const deltaX = event.clientX - dragState.startX;
-      const deltaY = event.clientY - dragState.startY;
-      if (!dragState.direction && Math.max(Math.abs(deltaX), Math.abs(deltaY)) > 10) {
-        dragState.direction = Math.abs(deltaX) > Math.abs(deltaY) * 1.2 ? "horizontal" : "vertical";
-      }
-      if (dragState.direction !== "horizontal") return;
+    if (window.PointerEvent) {
+      appShell.addEventListener("pointerdown", function (event) {
+        if (!event.isPrimary || event.pointerType === "mouse" && event.button !== 0) return;
+        if (startsOnControl(event.target)) return;
+        beginDrag(event.pointerId, event.clientX, event.clientY);
+      });
 
-      event.preventDefault();
-      dragState.deltaX = deltaX;
-      let offset = deltaX;
-      if ((currentPage === 0 && offset > 0) || (currentPage === PAGE_COUNT - 1 && offset < 0)) {
-        offset *= .28;
-      }
-      const width = appShell.clientWidth || 1;
-      const translate = -currentPage * width + offset;
-      appTrack.classList.add("is-dragging");
-      appTrack.style.transform = "translate3d(" + translate + "px, 0, 0)";
-    }, { passive: false });
+      window.addEventListener("pointermove", function (event) {
+        if (updateDrag(event.pointerId, event.clientX, event.clientY)) event.preventDefault();
+      }, { passive: false });
 
-    appShell.addEventListener("pointerup", function (event) {
-      if (dragState.active && event.pointerId === dragState.pointerId) releaseDrag();
-    });
+      window.addEventListener("pointerup", function (event) {
+        releaseDrag(event.pointerId);
+      });
 
-    appShell.addEventListener("pointercancel", function (event) {
-      if (dragState.active && event.pointerId === dragState.pointerId) releaseDrag();
-    });
+      window.addEventListener("pointercancel", function (event) {
+        releaseDrag(event.pointerId);
+      });
+    } else {
+      // Respaldo para navegadores táctiles que todavía no implementan Pointer Events.
+      appShell.addEventListener("touchstart", function (event) {
+        if (startsOnControl(event.target) || event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        beginDrag("touch-" + touch.identifier, touch.clientX, touch.clientY);
+      }, { passive: true });
 
-    appShell.addEventListener("lostpointercapture", function () {
-      if (dragState.active) releaseDrag();
-    });
+      window.addEventListener("touchmove", function (event) {
+        const touch = event.touches[0];
+        if (!touch) return;
+        if (updateDrag("touch-" + touch.identifier, touch.clientX, touch.clientY)) event.preventDefault();
+      }, { passive: false });
+
+      window.addEventListener("touchend", function (event) {
+        const touch = event.changedTouches[0];
+        if (touch) releaseDrag("touch-" + touch.identifier);
+      });
+
+      window.addEventListener("touchcancel", function () {
+        releaseDrag();
+      });
+
+      appShell.addEventListener("mousedown", function (event) {
+        if (event.button !== 0 || startsOnControl(event.target)) return;
+        beginDrag("mouse", event.clientX, event.clientY);
+      });
+
+      window.addEventListener("mousemove", function (event) {
+        if (updateDrag("mouse", event.clientX, event.clientY)) event.preventDefault();
+      });
+
+      window.addEventListener("mouseup", function () {
+        releaseDrag("mouse");
+      });
+    }
 
     document.addEventListener("click", function (event) {
       if (performance.now() - lastDragEndAt < 350) event.preventDefault();
@@ -1266,3 +1319,4 @@
   </script>
 </body>
 </html>
+
